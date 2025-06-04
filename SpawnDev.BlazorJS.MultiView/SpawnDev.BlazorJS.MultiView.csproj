@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Version>1.0.0-preview.0</Version>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<EmbedAllSources>true</EmbedAllSources>
+		<DebugType>Embedded</DebugType>
+		<Title>SpawnDev.BlazorJS.MultiView</Title>
+		<Authors>LostBeard</Authors>
+		<Description>MultiView rendering library for Blazor WebAssembly in the web browser.</Description>
+		<PackageProjectUrl>https://github.com/LostBeard/SpawnDev.BlazorJS.MultiView</PackageProjectUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+		<PackageIcon>icon-128.png</PackageIcon>
+		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.BlazorJS.MultiView.git</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageTags>Blazor;BlazorWebAssembly;Javascript;ONNX;DepthEstimation;Transformers.js;3D;Anaglyph</PackageTags>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Remove="Shaders\anaglyph.fragment.glsl" />
+	  <None Remove="Shaders\basic.fragment.glsl" />
+	  <None Remove="Shaders\basic.vertex.glsl" />
+	  <None Remove="Shaders\multiview.fragment.glsl" />
+	  <None Remove="Shaders\multiview.vertex.glsl" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Include="Shaders\anaglyph.fragment.glsl" />
+	  <EmbeddedResource Include="Shaders\basic.fragment.glsl" />
+	  <EmbeddedResource Include="Shaders\basic.vertex.glsl" />
+	  <EmbeddedResource Include="Shaders\multiview.fragment.glsl" />
+	  <EmbeddedResource Include="Shaders\multiview.vertex.glsl" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="Assets\icon-128.png" Pack="true" PackagePath="\" />
+		<None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
+		<None Include="..\README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.16" />
+		<PackageReference Include="SpawnDev.BlazorJS" Version="2.18.0" />
+		<PackageReference Include="SpawnDev.BlazorJS.TransformersJS" Version="1.4.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<SupportedPlatform Include="browser" />
+	</ItemGroup>
+
+</Project>
