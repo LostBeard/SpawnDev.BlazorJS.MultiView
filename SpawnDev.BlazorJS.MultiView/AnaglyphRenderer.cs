@@ -26,6 +26,7 @@ namespace SpawnDev.BlazorJS.MultiView
         {
             get => AnaglyphProfiles[ProfileIndex];
         }
+        public override string OutFormat => ActiveProfile.Name;
 
         // https://github.com/dolphin-emu/dolphin/blob/master/Data/Sys/Shaders/Anaglyph/dubois.glsl
         List<AnaglyphProfile> AnaglyphProfiles = new List<AnaglyphProfile>()

@@ -164,6 +164,8 @@ namespace SpawnDev.BlazorJS.MultiView
         WebGLTexture? videoSampler = null;
         WebGLTexture? overlayTexture = null;
 
+        public virtual string OutFormat { get; } = "2d"; // default output format, can be overridden by derived classes
+
         string _InFormat = "2d";
         public string InFormat
         {

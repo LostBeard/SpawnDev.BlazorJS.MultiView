@@ -1,4 +1,4 @@
-﻿@page "/RealTimeAnaglyph"
+﻿@page "/RealTime2Dto3D"
 @using SpawnDev.BlazorJS
 @using SpawnDev.BlazorJS.JSObjects
 @using System.Diagnostics
@@ -6,9 +6,9 @@
 @implements IDisposable
 
 <div>
-    <h1>Real-time 2D to Anaglyph</h1>
+    <h1>Real-time 2D to 3D</h1>
     <div>
-        In this demo, each webcam video frame is converted to 2D+Z using <a href="https://github.com/LostBeard/SpawnDev.BlazorJS.TransformersJS">SpawnDev.BlazorJS.TransformersJS</a> and <a href="https://developer.mozilla.org/en-US/docs/Web/API/TransformStream">TransformStream</a>.
+        In this demo, each webcam video frame is converted to 3D using <a href="https://github.com/LostBeard/SpawnDev.BlazorJS.TransformersJS">SpawnDev.BlazorJS.TransformersJS</a> and <a href="https://developer.mozilla.org/en-US/docs/Web/API/TransformStream">TransformStream</a>.
     </div>
     <div>
         <video width="640" @ref=videoRef autoplay muted playsinline controls></video>
@@ -19,6 +19,27 @@
             (<label>@(Math.Round(scale, 2))</label>)
             <br />
             <input @ref=scaleRef type="range" min="0.1" max="1" step="0.05" value="@scale" />
+        </div>
+        <div title="">
+            <label>Focus Depth</label>
+            (<label>@(Math.Round(Focus3D, 2))</label>)
+            <br />
+            <input @ref=focusRef type="range" min="0.1" max="1" step="0.05" value="@Focus3D" />
+        </div>
+        <div title="">
+            <label>Level 3D</label>
+            (<label>@(Math.Round(Level3D, 2))</label>)
+            <br />
+            <input @ref=level3DRef type="range" min="0.1" max="1" step="0.05" value="@Level3D" />
+        </div>
+        <div>
+            <label>Renderer Select</label>
+            <select class="form-select" id="instant" @bind="RendererIndex">
+                @foreach (var renderer in Renderers)
+                {
+                    <option value="@Renderers.IndexOf(renderer)">@renderer.OutFormat</option>
+                }
+            </select>
         </div>
         <div>FPS: @(Math.Round(fps, 2))</div>
         <div>Source Size: @($"{SourceWidth}x{SourceHeight}")</div>
@@ -42,6 +63,10 @@
     ElementReference videoRef;
     ElementReference scaleRef;
     HTMLInputElement? scaleEl;
+    ElementReference focusRef;
+    HTMLInputElement? focus3DEl;
+    ElementReference level3DRef;
+    HTMLInputElement? level3DEl;
     HTMLVideoElement? video;
     Window? window = null;
     string model = "onnx-community/depth-anything-v2-small";
@@ -54,10 +79,40 @@
     bool startButtonDisabled => transformStream != null;
     string? camErrorMessage = null;
     double frameCount = 0;
-    AnaglyphRenderer? anaglyphRenderer = null;
+    MultiviewRenderer? activeRenderer => Renderers[RendererIndex];
+    float Focus3D = 0.5f;
+    float Level3D = 1.0f;
+    int AnaglyphProfile = 0;
+    int RendererIndex = 0;
+    List<MultiviewRenderer> Renderers = new List<MultiviewRenderer>();
 
     Dictionary<string, ModelLoadProgress> ModelProgresses = new();
     ActionCallback<ModelLoadProgress>? OnProgress = null;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Init
+            window = JS.Get<Window>("window");
+            video = new HTMLVideoElement(videoRef);
+            // setup the sliders and their change events
+            scaleEl = new HTMLInputElement(scaleRef);
+            scaleEl.OnChange += Scale_OnChange;
+            focus3DEl = new HTMLInputElement(focusRef);
+            focus3DEl.OnChange += Focus_OnChange;
+            level3DEl = new HTMLInputElement(level3DRef);
+            level3DEl.OnChange += Level_OnChange;
+            // depth estimation pipeline initialization  
+            OnProgress = new ActionCallback<ModelLoadProgress>(Pipeline_OnProgress);
+            var transformers = await Transformers.Init();
+            pipeline = await transformers.DepthEstimationPipeline(model, new PipelineOptions { Device = UseWebGPU ? "webgpu" : null, OnProgress = OnProgress });
+            // transform stream initialization
+            transformerCallbacks = new TransformStreamCallbacks(transform: Transformer_Transform);
+            // Anaglyph renderer initialization
+            Renderers.Add(new AnaglyphRenderer { ProfileIndex = 0 });
+            Renderers.Add(new AnaglyphRenderer { ProfileIndex = 1 });
+        }
+    }
     void Pipeline_OnProgress(ModelLoadProgress obj)
     {
         if (obj.File != null)
@@ -85,25 +140,22 @@
             StateHasChanged();
         }
     }
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    void Focus_OnChange()
     {
-        if (firstRender)
+        if (focus3DEl == null) return;
+        if (float.TryParse(focus3DEl.Value, out var s))
         {
-            window = JS.Get<Window>("window");
-            video = new HTMLVideoElement(videoRef);
-
-            var transformers = await Transformers.Init();
-
-            scaleEl = new HTMLInputElement(scaleRef);
-            scaleEl.OnChange += Scale_OnChange;
-
-            OnProgress ??= new ActionCallback<ModelLoadProgress>(Pipeline_OnProgress);
-            pipeline = await transformers.DepthEstimationPipeline(model, new PipelineOptions { Device = UseWebGPU ? "webgpu" : null, OnProgress = OnProgress });
-
-            transformerCallbacks = new TransformStreamCallbacks(transform: Transformer_Transform);
-
-            // Anaglyph renderer initialization
-            anaglyphRenderer = new AnaglyphRenderer();
+            Focus3D = s;
+            StateHasChanged();
+        }
+    }
+    void Level_OnChange()
+    {
+        if (level3DEl == null) return;
+        if (float.TryParse(level3DEl.Value, out var s))
+        {
+            Level3D = s;
+            StateHasChanged();
         }
     }
     void Stop()
@@ -161,11 +213,14 @@
             Stop();
         }
     }
-    float Focus3D { get; set; } = 0.5f;
-    float Level3D { get; set; } = 1.0f;
-    int AnaglyphProfile = 0;
     async Task Transformer_Transform(VideoFrame rgbFrame, TransformStreamDefaultController controller)
     {
+        if (transformStream == null || pipeline == null || activeRenderer == null)
+        {
+            controller.Error("Transformer not initialized.");
+            rgbFrame.Close(); // Dispose the VideoFrame to free resources
+            return;
+        }
         try
         {
             var rgbWidth = rgbFrame.DisplayWidth;
@@ -187,15 +242,14 @@
             // Merge the 2D image and the depth result into a single canvas
             using var rgbZCanvas = Merge2DWithDepthToCanvas2DZ(rgbFrame, depthResult);
 
-            anaglyphRenderer.Level3D = Level3D;
-            anaglyphRenderer.Focus3D = Focus3D;
-            anaglyphRenderer.ProfileIndex = AnaglyphProfile;
-            anaglyphRenderer.SetInput(rgbZCanvas, "2dz");
-            anaglyphRenderer.Render();
+            activeRenderer.Level3D = Level3D;
+            activeRenderer.Focus3D = Focus3D;
+            activeRenderer.SetInput(rgbZCanvas, "2dz");
+            activeRenderer.Render();
 
-            rgbCanvas.Width = anaglyphRenderer.OutWidth;
-            rgbCanvas.Height = anaglyphRenderer.OutHeight;
-            rgbCtx.DrawImage(anaglyphRenderer.OffscreenCanvas!);
+            rgbCanvas.Width = activeRenderer.OutWidth;
+            rgbCanvas.Height = activeRenderer.OutHeight;
+            rgbCtx.DrawImage(activeRenderer.OffscreenCanvas!);
 
             // Create a new VideoFrame with the processed bitmap
             using var rgbZFrame = new VideoFrame(rgbCanvas, new VideoFrameOptions
@@ -287,7 +341,7 @@
             scaleEl.Dispose();
             scaleEl = null;
         }
-        anaglyphRenderer?.Dispose();
+        activeRenderer?.Dispose();
         video?.Dispose();
         window?.Dispose();
         transformerCallbacks?.Dispose();

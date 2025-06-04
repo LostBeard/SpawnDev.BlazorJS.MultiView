@@ -7,5 +7,5 @@ This library's primary goal is to aid the conversion of 2D+Z content created by 
 
 Currently supports 2D+Z to Anaglyph
 
-- [Real-time WebCam 2D to Anaglyph](https://lostbeard.github.io/SpawnDev.BlazorJS.MultiView/RealTimeAnaglyph)
+- [Realtime WebCam 2D to 3D](https://lostbeard.github.io/SpawnDev.BlazorJS.MultiView/RealTime2Dto3D)
 
