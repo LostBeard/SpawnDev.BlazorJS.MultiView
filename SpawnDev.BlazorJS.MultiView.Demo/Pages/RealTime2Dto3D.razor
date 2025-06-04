@@ -34,7 +34,7 @@
         </div>
         <div>
             <label>Renderer Select</label>
-            <select class="form-select" id="instant" @bind="RendererIndex">
+            <select style="width: auto;" class="form-select" id="instant" @bind="RendererIndex">
                 @foreach (var renderer in Renderers)
                 {
                     <option value="@Renderers.IndexOf(renderer)">@renderer.OutFormat</option>
@@ -76,7 +76,7 @@
     double fps = 0;
     Stopwatch sw = Stopwatch.StartNew();
     bool stopButtonDisabled => transformStream == null;
-    bool startButtonDisabled => transformStream != null;
+    bool startButtonDisabled => transformStream != null || !initComplete;
     string? camErrorMessage = null;
     double frameCount = 0;
     MultiviewRenderer? activeRenderer => Renderers[RendererIndex];
@@ -84,6 +84,7 @@
     float Level3D = 1.0f;
     int AnaglyphProfile = 0;
     int RendererIndex = 0;
+    bool initComplete = false;
     List<MultiviewRenderer> Renderers = new List<MultiviewRenderer>();
 
     Dictionary<string, ModelLoadProgress> ModelProgresses = new();
@@ -95,6 +96,9 @@
             // Init
             window = JS.Get<Window>("window");
             video = new HTMLVideoElement(videoRef);
+            // Anaglyph renderer initialization
+            Renderers.Add(new AnaglyphRenderer { ProfileIndex = 0 });
+            Renderers.Add(new AnaglyphRenderer { ProfileIndex = 1 });
             // setup the sliders and their change events
             scaleEl = new HTMLInputElement(scaleRef);
             scaleEl.OnChange += Scale_OnChange;
@@ -108,9 +112,8 @@
             pipeline = await transformers.DepthEstimationPipeline(model, new PipelineOptions { Device = UseWebGPU ? "webgpu" : null, OnProgress = OnProgress });
             // transform stream initialization
             transformerCallbacks = new TransformStreamCallbacks(transform: Transformer_Transform);
-            // Anaglyph renderer initialization
-            Renderers.Add(new AnaglyphRenderer { ProfileIndex = 0 });
-            Renderers.Add(new AnaglyphRenderer { ProfileIndex = 1 });
+            initComplete = true;
+            StateHasChanged();
         }
     }
     void Pipeline_OnProgress(ModelLoadProgress obj)
