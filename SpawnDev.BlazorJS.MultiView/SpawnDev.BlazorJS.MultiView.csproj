@@ -11,7 +11,7 @@
 		<DebugType>Embedded</DebugType>
 		<Title>SpawnDev.BlazorJS.MultiView</Title>
 		<Authors>LostBeard</Authors>
-		<Description>MultiView rendering library for Blazor WebAssembly in the web browser.</Description>
+		<Description>Tools for rendering 2D, 2D+Z (primary focus), Side by Side, Over Under, and other 2D/3D images, videos, or streams in 2D/3D output formats like Green Magenta, Red Cyan, Side by Side, Over Under, multi-view glasses-free lenticular, and more in Blazor WebAssembly applications.</Description>
 		<PackageProjectUrl>https://github.com/LostBeard/SpawnDev.BlazorJS.MultiView</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
