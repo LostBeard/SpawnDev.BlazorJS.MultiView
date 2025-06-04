@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "SpawnDev.BlazorJS.MultiView.Demo",
   "resources": {
-    "hash": "sha256-ogIKlFUlluD5nGoGOuWqXL3buIPYBNcYuGXF/ho0tZQ=",
+    "hash": "sha256-eJZh8VU262CMRvo6IAJCOUjtjvMOGAaWfKykcIfyngM=",
     "jsModuleNative": {
       "dotnet.native.js": "sha256-AnPQtEN9rGUfgtP7261KjemEatISV2rDxhwf960lvG0="
     },
@@ -9,7 +9,7 @@
       "dotnet.runtime.js": "sha256-t76BRXwt7ie+t1popBz8/uUmIQCWeGU9XALjF0psLNw="
     },
     "wasmNative": {
-      "dotnet.native.wasm": "sha256-ayAnPV8h3fdoeMVXdSa0EDEHr1sakWCQSV65NpCYLlY="
+      "dotnet.native.wasm": "sha256-awROFxOUr5amYlMcG8sIR/KaFn8E1xel95Rtiau+8Bg="
     },
     "icu": {
       "icudt_CJK.dat": "sha256-SZLtQnRc0JkwqHab0VUVP7T3uBPSeYzxzDnpxPpUnHk=",
@@ -18,7 +18,7 @@
     },
     "coreAssembly": {},
     "assembly": {
-      "Microsoft.AspNetCore.Components.wasm": "sha256-ekTEHQGio0hrjl96AnQU53SoBYmvfZg3ifeDSqOyN+Q=",
+      "Microsoft.AspNetCore.Components.wasm": "sha256-ztfdQ0LaYc5jqx/B021+jk8kYmh28Opin/cXMn41xrc=",
       "Microsoft.AspNetCore.Components.Web.wasm": "sha256-YBo05jwwpO4uPXIbILQOXgv5Yq9IgMFtG8Wxykcx7vY=",
       "Microsoft.AspNetCore.Components.WebAssembly.wasm": "sha256-+YUD6arz/tDxdXX5IFf/ny8mhH3TskSpFzs+WBRBNjc=",
       "Microsoft.Extensions.Configuration.wasm": "sha256-od574rRtVVRJj+24jbl8j3GdQFpxlJOpSx+pEMw1Q18=",
@@ -57,9 +57,9 @@
       "System.Text.Json.wasm": "sha256-E3QV3cJhDl65501wIZ8iz6J3J1VJDdLmTtfN2vDRJyI=",
       "System.Text.RegularExpressions.wasm": "sha256-R/ebNGEoYJyEJndmUg+Dx9GKHuYg5W86iFbLufWWmWc=",
       "System.Threading.wasm": "sha256-uEADCjlSlo/6vVBIX8IqabSf+UEtazcpcP5TNzWVyVw=",
-      "System.Private.CoreLib.wasm": "sha256-qlY2H4+lzFaPEd9kdR3lrdUjNCa887GTZLLNU6wqwmk=",
-      "SpawnDev.BlazorJS.MultiView.wasm": "sha256-l7l1nwQZLjy9T8E0lrEytfGrEubRyUzvSfulL0IUzP8=",
-      "SpawnDev.BlazorJS.MultiView.Demo.wasm": "sha256-x/g0SRY9aa/Fa49gAZsclz6qZAORSboJ3A9V65ypHL8="
+      "System.Private.CoreLib.wasm": "sha256-g72YHheRTTUTDERbAOoyKFt1EXUMk9uk08zDM71myqM=",
+      "SpawnDev.BlazorJS.MultiView.wasm": "sha256-tav343U5cqxO3kUW92m7TBz58gmFA1TNJjXUZhJE33E=",
+      "SpawnDev.BlazorJS.MultiView.Demo.wasm": "sha256-V3MG787E8HcmcUGNXx7I6b+Xk02on83q9vImEi8XdMg="
     },
     "libraryInitializers": {
       "SpawnDev.BlazorJS.1kohsulca1.lib.module.js": "sha256-b0WR5Fb08OK+FgLPLG33kE1Pca2blPel5Q4FZnjb5W0="
