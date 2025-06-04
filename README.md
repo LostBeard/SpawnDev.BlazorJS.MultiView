@@ -1,4 +1,5 @@
 ﻿# SpawnDev.BlazorJS.MultiView
+[![NuGet](https://img.shields.io/nuget/dt/SpawnDev.BlazorJS.MultiView.svg?label=SpawnDev.BlazorJS.MultiView)](https://www.nuget.org/packages/SpawnDev.BlazorJS.MultiView)  
 Tools for rendering 2D, 2D+Z, Side by Side, Over Under, and other 2D/3D images, videos, or streams in output formats like Green Magenta, Red Cyan, Side by Side, Over Under, glasses-free lenticular, etc. in Blazor WebAssembly applications. 
 
 Thanks to machine learning, depth estimation has improved in leaps and bounds in the past couple years. 
