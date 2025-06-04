@@ -1,5 +1,5 @@
 ﻿# SpawnDev.BlazorJS.MultiView
-Tools for rendering 2D+Z, Side by Side, Over Under, and other 3D formats in Blazor WebAssembly applications. 
+Tools for rendering 2D, 2D+Z, Side by Side, Over Under, and other 2D/3D images, videos, or streams in output formats like Green Magenta, Red Cyan, Side by Side, Over Under, glasses-free lenticular, etc. in Blazor WebAssembly applications. 
 
 Thanks to machine learning, depth estimation has improved in leaps and bounds in the past couple years. 
 With the right tools, we can now easily convert 2D images and videos to 3D. 
