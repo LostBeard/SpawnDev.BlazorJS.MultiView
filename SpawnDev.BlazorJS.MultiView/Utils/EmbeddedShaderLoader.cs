@@ -2,7 +2,7 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
 
-namespace SpawnDev.BlazorJS.MultiView
+namespace SpawnDev.BlazorJS.MultiView.Utils
 {
     public static class EmbeddedShaderLoader
     {
@@ -45,7 +45,7 @@ namespace SpawnDev.BlazorJS.MultiView
         }
         public static WebGLShader? CreateShader(WebGLRenderingContext gl, string resourceName, int shaderType, bool useIncludes = true, Assembly? assembly = null)
         {
-            var shaderSource = EmbeddedShaderLoader.GetShaderString(resourceName, useIncludes, assembly);
+            var shaderSource = GetShaderString(resourceName, useIncludes, assembly);
             if (shaderSource == null)
             {
                 return null;

@@ -1,7 +1,7 @@
 ﻿using SpawnDev.BlazorJS.JSObjects;
 using System.Reflection;
 
-namespace SpawnDev.BlazorJS.MultiView
+namespace SpawnDev.BlazorJS.MultiView.Utils
 {
     public class WebGLUtilities
     {

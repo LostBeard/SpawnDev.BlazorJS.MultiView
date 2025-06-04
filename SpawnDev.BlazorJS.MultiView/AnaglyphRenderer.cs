@@ -1,4 +1,5 @@
 ﻿using SpawnDev.BlazorJS.JSObjects;
+using SpawnDev.BlazorJS.MultiView.Utils;
 
 namespace SpawnDev.BlazorJS.MultiView
 {
@@ -57,9 +58,9 @@ namespace SpawnDev.BlazorJS.MultiView
             new AnaglyphProfile{
                 Name = "Green Magenta",
                 Data = new float[]{
-                    0.0f,
-                    0.0f,
-                    0.0f,
+                    0.0f,   // brightness
+                    0.0f,   // contrast
+                    0.0f,   // gamma
                     -0.062f,
                     -0.158f,
                     -0.039f,

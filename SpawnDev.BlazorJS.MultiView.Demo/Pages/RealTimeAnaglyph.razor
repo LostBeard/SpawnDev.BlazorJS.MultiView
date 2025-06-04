@@ -195,7 +195,7 @@
 
             rgbCanvas.Width = anaglyphRenderer.OutWidth;
             rgbCanvas.Height = anaglyphRenderer.OutHeight;
-            rgbCtx.DrawImage(anaglyphRenderer.offscreenCanvas!);
+            rgbCtx.DrawImage(anaglyphRenderer.OffscreenCanvas!);
 
             // Create a new VideoFrame with the processed bitmap
             using var rgbZFrame = new VideoFrame(rgbCanvas, new VideoFrameOptions

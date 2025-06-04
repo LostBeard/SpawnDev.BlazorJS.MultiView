@@ -1,20 +1,22 @@
 ﻿using SpawnDev.BlazorJS.JSObjects;
+using SpawnDev.BlazorJS.MultiView.Utils;
 
 namespace SpawnDev.BlazorJS.MultiView
 {
     public abstract class MultiviewRenderer : IDisposable
     {
-        public OffscreenCanvas? offscreenCanvas { get; private set; }
-        public HTMLCanvasElement? canvas { get; private set; }
+        public OffscreenCanvas? OffscreenCanvas { get; private set; }
+        public HTMLCanvasElement? Canvas { get; private set; }
         public WebGLRenderingContext gl { get; private set; }
         public WebGLProgram program { get; protected set; }
         public float Level3D { get; set; } = 1f;
-        public float sepMax { get; set; } = 0.020f;
+        public float SepMax { get; set; } = 0.020f;
         public float Focus3D { get; set; } = 0.5f;
+        public bool AutoSize { get; set; } = true;
         protected MultiviewRenderer()
         {
-            offscreenCanvas = new OffscreenCanvas(1, 1);
-            gl = offscreenCanvas.GetWebGLContext(new WebGLContextAttributes
+            OffscreenCanvas = new OffscreenCanvas(1, 1);
+            gl = OffscreenCanvas.GetWebGLContext(new WebGLContextAttributes
             {
                 PreserveDrawingBuffer = true,
             });
@@ -22,7 +24,7 @@ namespace SpawnDev.BlazorJS.MultiView
         }
         protected MultiviewRenderer(HTMLCanvasElement canvas)
         {
-            this.canvas = canvas;
+            this.Canvas = canvas;
             gl = canvas.GetWebGLContext(new WebGLContextAttributes
             {
                 PreserveDrawingBuffer = true,
@@ -83,24 +85,24 @@ namespace SpawnDev.BlazorJS.MultiView
         {
             if (string.IsNullOrEmpty(type))
             {
-                type = "canvas/png";
+                type = "Canvas/png";
             }
-            if (canvas != null)
+            if (Canvas != null)
             {
                 if (quality != null)
                 {
-                    var blob = await canvas.ToBlobAsync(type, quality.Value);
+                    var blob = await Canvas.ToBlobAsync(type, quality.Value);
                     return blob;
                 }
                 else
                 {
-                    var blob = await canvas.ToBlobAsync(type);
+                    var blob = await Canvas.ToBlobAsync(type);
                     return blob;
                 }
             }
-            else if (offscreenCanvas != null)
+            else if (OffscreenCanvas != null)
             {
-                var blob = await offscreenCanvas.ConvertToBlob(new ConvertToBlobOptions
+                var blob = await OffscreenCanvas.ConvertToBlob(new ConvertToBlobOptions
                 {
                     Type = type,
                     Quality = quality,
@@ -115,48 +117,47 @@ namespace SpawnDev.BlazorJS.MultiView
             var objectUrl = blob == null ? null : URL.CreateObjectURL(blob);
             return objectUrl;
         }
-        public bool AutoSize { get; set; } = true;
         public int OutWidth
         {
-            get => canvas?.Width ?? offscreenCanvas?.Width ?? 0;
+            get => Canvas?.Width ?? OffscreenCanvas?.Width ?? 0;
             set
             {
-                if (canvas != null)
+                if (Canvas != null)
                 {
-                    canvas.Width = value;
+                    Canvas.Width = value;
                 }
-                else if (offscreenCanvas != null)
+                else if (OffscreenCanvas != null)
                 {
-                    offscreenCanvas.Width = value;
+                    OffscreenCanvas.Width = value;
                 }
             }
         }
         public int OutHeight
         {
-            get => canvas?.Height ?? offscreenCanvas?.Height ?? 0;
+            get => Canvas?.Height ?? OffscreenCanvas?.Height ?? 0;
             set
             {
-                if (canvas != null)
+                if (Canvas != null)
                 {
-                    canvas.Height = value;
+                    Canvas.Height = value;
                 }
-                else if (offscreenCanvas != null)
+                else if (OffscreenCanvas != null)
                 {
-                    offscreenCanvas.Height = value;
+                    OffscreenCanvas.Height = value;
                 }
             }
         }
         public void SetOutputSize(int width, int height)
         {
-            if (canvas != null)
+            if (Canvas != null)
             {
-                canvas.Width = width;
-                canvas.Height = height;
+                Canvas.Width = width;
+                Canvas.Height = height;
             }
-            else if (offscreenCanvas != null)
+            else if (OffscreenCanvas != null)
             {
-                offscreenCanvas.Width = width;
-                offscreenCanvas.Height = height;
+                OffscreenCanvas.Width = width;
+                OffscreenCanvas.Height = height;
             }
         }
 
@@ -357,7 +358,7 @@ namespace SpawnDev.BlazorJS.MultiView
                 // if 2d+z below 2 uniforms must be set
                 var outPixelWidth = 1.0f / (float)outWidth;
                 // handle extra data needed for 2dz and 2dzd
-                var sep_max_x = sepMax * Level3D; // (RenderManager.settings["3d_level_global"].value);
+                var sep_max_x = SepMax * Level3D; // (RenderManager.settings["3d_level_global"].value);
                 var sep_max_modifier = 900f / (float)viewWidth;
                 sep_max_x = sep_max_x * sep_max_modifier;
                 //sep_max_x = sep_max_x - (sep_max_x % rC0[1]);
