@@ -1,0 +1,411 @@
+﻿@page "/RealTimeVideo2Dto3D"
+@using SpawnDev.BlazorJS
+@using SpawnDev.BlazorJS.JSObjects
+@using System.Diagnostics
+@using SpawnDev.BlazorJS.TransformersJS
+@implements IDisposable
+
+<div>
+    <h3>Realtime Video 2D to 3D</h3>
+    <div>
+        In this demo, each video frame is converted to 3D using <a href="https://github.com/LostBeard/SpawnDev.BlazorJS.TransformersJS">SpawnDev.BlazorJS.TransformersJS</a> and <a href="https://developer.mozilla.org/en-US/docs/Web/API/TransformStream">TransformStream</a>.
+    </div>
+    <div>
+        <div style="display: inline-block; position: relative;">
+            <video width="640" @ref=videoRef autoplay muted playsinline controls></video>
+            <canvas @ref=outputCanvasRef style="display: inline-block; position: absolute; top: 0; left: 0; width: 100$; height: 100%;"></canvas>
+        </div>
+    </div>
+    <div>
+        <input @ref=fileInputRef accept="video/*" type="file" /><br />
+    </div>
+    <div id="controls">
+        <div title="Process frames at a lower size (lower = faster)">
+            <label>Depth Scale</label>
+            (<label>@(Math.Round(scale, 2))</label>)
+            <br />
+            <input @ref=scaleRef type="range" min="0.1" max="1" step="0.05" value="@scale" />
+        </div>
+        <div title="">
+            <label>Focus Depth</label>
+            (<label>@(Math.Round(Focus3D, 2))</label>)
+            <br />
+            <input @ref=focusRef type="range" min="0.1" max="1" step="0.05" value="@Focus3D" />
+        </div>
+        <div title="">
+            <label>Level 3D</label>
+            (<label>@(Math.Round(Level3D, 2))</label>)
+            <br />
+            <input @ref=level3DRef type="range" min="0.1" max="1" step="0.05" value="@Level3D" />
+        </div>
+        <div>
+            <label>Renderer Select</label>
+            <select style="width: auto;" class="form-select" id="instant" @bind="RendererIndex">
+                @foreach (var renderer in Renderers)
+                {
+                    <option value="@Renderers.IndexOf(renderer)">@renderer.OutFormat</option>
+                }
+            </select>
+        </div>
+        <div>FPS: @(Math.Round(fps, 2))</div>
+        <div>Source Size: @($"{SourceWidth}x{SourceHeight}")</div>
+        <div>Depth Size: @($"{DepthWidth}x{DepthHeight}")</div>
+        <div>@camErrorMessage</div>
+    </div>
+    <div>
+        <button disabled="@startButtonDisabled" @onclick=@(() => Start())>Start</button>
+        <button disabled="@stopButtonDisabled" @onclick=@(() => Stop())>Stop</button>
+    </div>
+</div>
+
+@code {
+    [Inject]
+    BlazorJSRuntime JS { get; set; } = default!;
+
+    ElementReference outputCanvasRef;
+    HTMLCanvasElement? outputCanvas;
+
+    ElementReference fileInputRef;
+    HTMLInputElement? fileInput;
+    File? sourceFile = null;
+
+    ElementReference videoRef;
+    ElementReference scaleRef;
+    HTMLInputElement? scaleEl;
+    ElementReference focusRef;
+    HTMLInputElement? focus3DEl;
+    ElementReference level3DRef;
+    HTMLInputElement? level3DEl;
+    HTMLVideoElement? video;
+    Window? window = null;
+    string model = "onnx-community/depth-anything-v2-small";
+    bool UseWebGPU = true;
+    DepthEstimationPipeline? pipeline = null;
+    double scale = 0.5d;
+    double fps = 0;
+    Stopwatch sw = Stopwatch.StartNew();
+    bool stopButtonDisabled => false;
+    bool startButtonDisabled => !initComplete;
+    string? camErrorMessage = null;
+    double frameCount = 0;
+    MultiviewRenderer? activeRenderer => Renderers[RendererIndex];
+    float Focus3D = 0.5f;
+    float Level3D = 1.0f;
+    int AnaglyphProfile = 0;
+    int RendererIndex = 0;
+    bool initComplete = false;
+    List<MultiviewRenderer> Renderers = new List<MultiviewRenderer>();
+
+    Dictionary<string, ModelLoadProgress> ModelProgresses = new();
+    ActionCallback<ModelLoadProgress>? OnProgress = null;
+    CanvasRenderingContext2D? ctx;
+
+    bool supportsVideoFrameCallback = false;
+    bool supportsWindowAnimationCallback = false;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Init
+            outputCanvas = new HTMLCanvasElement(outputCanvasRef);
+            ctx = outputCanvas.Get2DContext();
+
+            fileInput = new HTMLInputElement(fileInputRef);
+            fileInput.OnChange += FileInput_OnChange;
+
+            window = JS.Get<Window>("window");
+            supportsWindowAnimationCallback = !window.JSRef!.IsUndefined("requestAnimationFrame");
+
+            video = new HTMLVideoElement(videoRef);
+            supportsVideoFrameCallback = video.SupportsRequestVideoFrameCallback;
+
+            // Anaglyph renderer initialization
+            Renderers.Add(new AnaglyphRenderer { ProfileIndex = 0 });
+            Renderers.Add(new AnaglyphRenderer { ProfileIndex = 1 });
+            // setup the sliders and their change events
+            scaleEl = new HTMLInputElement(scaleRef);
+            scaleEl.OnChange += Scale_OnChange;
+            focus3DEl = new HTMLInputElement(focusRef);
+            focus3DEl.OnChange += Focus_OnChange;
+            level3DEl = new HTMLInputElement(level3DRef);
+            level3DEl.OnChange += Level_OnChange;
+            // depth estimation pipeline initialization
+            OnProgress = new ActionCallback<ModelLoadProgress>(Pipeline_OnProgress);
+            var transformers = await Transformers.Init();
+            pipeline = await transformers.DepthEstimationPipeline(model, new PipelineOptions { Device = UseWebGPU ? "webgpu" : null, OnProgress = OnProgress });
+            initComplete = true;
+            RequeueUpdate();
+            StateHasChanged();
+        }
+    }
+    void FileInput_OnChange(Event ev)
+    {
+        using var files = fileInput!.Files;
+        sourceFile = files?.FirstOrDefault();
+        StateHasChanged();
+    }
+    async Task PlaySource(File file)
+    {
+        if (video == null || fileInput == null) return;
+        try
+        {
+            // Reset the video element
+            video.Src = string.Empty;
+            video.Load();
+            // Create a URL for the file and set it as the source
+            var fileUrl = URL.CreateObjectURL(file);
+            video.Src = fileUrl;
+            video.Load();
+            // Play the video
+            await video.Play();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error playing source: {ex.Message}");
+        }
+    }
+    void Pipeline_OnProgress(ModelLoadProgress obj)
+    {
+        if (obj.File != null)
+        {
+            if (ModelProgresses.TryGetValue(obj.File, out var progress))
+            {
+                progress.Status = obj.Status;
+                if (obj.Progress != null) progress.Progress = obj.Progress;
+                if (obj.Total != null) progress.Total = obj.Total;
+                if (obj.Loaded != null) progress.Loaded = obj.Loaded;
+            }
+            else
+            {
+                ModelProgresses[obj.File] = obj;
+            }
+        }
+        StateHasChanged();
+    }
+    void Scale_OnChange()
+    {
+        if (scaleEl == null) return;
+        if (double.TryParse(scaleEl.Value, out var s))
+        {
+            scale = s;
+            StateHasChanged();
+        }
+    }
+    void Focus_OnChange()
+    {
+        if (focus3DEl == null) return;
+        if (float.TryParse(focus3DEl.Value, out var s))
+        {
+            Focus3D = s;
+            StateHasChanged();
+        }
+    }
+    void Level_OnChange()
+    {
+        if (level3DEl == null) return;
+        if (float.TryParse(level3DEl.Value, out var s))
+        {
+            Level3D = s;
+            StateHasChanged();
+        }
+    }
+    void Stop()
+    {
+        if (video != null)
+        {
+            try
+            {
+                if (!video.Paused) video.Pause();
+                video.SrcObject = null;
+                video.Src = null;
+            }
+            catch { }
+        }
+        if (!string.IsNullOrEmpty(videoUrlObject))
+        {
+            try
+            {
+                URL.RevokeObjectURL(videoUrlObject);
+            }
+            catch { }
+            videoUrlObject = null;
+        }
+    }
+    string? videoUrlObject = null;
+    async Task Start()
+    {
+        if (video == null)
+        {
+            return;
+        }
+        Stop();
+        try
+        {
+            camErrorMessage = "";
+            StateHasChanged();
+            videoUrlObject = sourceFile == null ? null : URL.CreateObjectURL(sourceFile);
+            video.Src = videoUrlObject;
+            video.Load();
+            await video.Play();
+        }
+        catch (Exception ex)
+        {
+            camErrorMessage = $"Camera access failed: {ex.Message}";
+            JS.Log($"Start failed: {ex.Message}");
+            Stop();
+        }
+    }
+    bool UpdateCallbackRunning = false;
+    async Task UpdateCallback()
+    {
+        if (IsDisposed || video == null || UpdateCallbackRunning || outputCanvas == null || ctx == null || activeRenderer == null) return;
+        UpdateCallbackRunning = true;
+        try
+        {
+            var rgbWidth = video.VideoWidth;
+            var rgbHeight = video.VideoHeight;
+
+            using var rgbCanvas = new OffscreenCanvas(rgbWidth, rgbHeight);
+            using var rgbCtx = rgbCanvas.Get2DContext();
+            rgbCtx.DrawImage(video, 0, 0, rgbWidth, rgbHeight);
+
+            // Create an OffscreenCanvas to draw the VideoFrame
+            var depthWidth = (int)(rgbWidth * scale);
+            var depthHeight = (int)(rgbHeight * scale);
+
+            using var rgbCanvasScaled = new OffscreenCanvas(depthWidth, depthHeight);
+            using var rgbCtxScaled = rgbCanvasScaled.Get2DContext();
+            rgbCtxScaled.DrawImage(rgbCanvas, 0, 0, depthWidth, depthHeight);
+
+            // Convert the OffscreenCanvas to a RawImage for processing
+            using var rgbImageScaled = RawImage.FromCanvas(rgbCanvasScaled);
+
+            // Run the depth estimation pipeline on the RGB image
+            using var depthResult = await pipeline!.Call(rgbImageScaled);
+
+            // Merge the 2D image and the depth result into a single canvas
+            using var rgbZCanvas = Merge2DWithDepthToCanvas2DZ(rgbCanvas, depthResult);
+
+            activeRenderer.Level3D = Level3D;
+            activeRenderer.Focus3D = Focus3D;
+            activeRenderer.SetInput(rgbZCanvas, "2dz");
+            activeRenderer.Render();
+
+            if (outputCanvas.ClientWidth != rgbWidth || outputCanvas.ClientHeight != rgbHeight)
+            {
+                // Resize the output canvas to match the video dimensions
+                outputCanvas.Width = rgbWidth;
+                outputCanvas.Height = rgbHeight;
+            }
+
+            ctx.DrawImage(activeRenderer.OffscreenCanvas!);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"UpdateCallback error: {ex.Message}");
+        }
+        finally
+        {            
+            // update fps
+            frameCount += 1;
+            var elapsedSeconds = sw.Elapsed.TotalSeconds;
+            if (elapsedSeconds >= 1d)
+            {
+                sw.Restart();
+                fps = frameCount / elapsedSeconds;
+                frameCount = 0;
+                StateHasChanged();
+            }
+            UpdateCallbackRunning = false;
+            RequeueUpdate();
+        }
+    }
+    void RequeueUpdate()
+    {
+        if (IsDisposed) return;
+        if (supportsVideoFrameCallback && video != null)
+        {
+            video.RequestVideoFrameCallback(() => _ = UpdateCallback());
+        }
+        else if (supportsWindowAnimationCallback && window != null)
+        {
+            window!.RequestAnimationFrame(() => _ = UpdateCallback());
+        }
+        else
+        {
+            JS.SetTimeout(() => _ = UpdateCallback(), 20);
+        }
+    }
+    int SourceWidth = 0;
+    int SourceHeight = 0;
+    int DepthWidth = 0;
+    int DepthHeight = 0;
+    OffscreenCanvas Merge2DWithDepthToCanvas2DZ(OffscreenCanvas rgbFrame, DepthEstimationResult depthEstimationResult)
+    {
+        using var depthEstimation = depthEstimationResult.Depth;
+        using var grayscale1BPPData = depthEstimation.Data;
+        var depthWidth = depthEstimation.Width;
+        var depthHeight = depthEstimation.Height;
+        var width = rgbFrame.Width;
+        var height = rgbFrame.Height;
+        var outWidth = width * 2;
+        var outHeight = height;
+        SourceWidth = width;
+        SourceHeight = height;
+        DepthWidth = depthWidth;
+        DepthHeight = depthHeight;
+        var grayscaleDataBytes = grayscale1BPPData.ReadBytes();
+        // Convert the 1BPP grayscale data to RGBA format
+        var depthmapRGBABytes = Grayscale1BPPToRGBA(grayscaleDataBytes, depthWidth, depthHeight);
+        // Create an ImageData object from the depth bytes
+        using var depthImageData = ImageData.FromBytes(depthmapRGBABytes, depthWidth, depthHeight);
+        // Create an OffscreenCanvas for the depth map ImageData
+        using var depthCanvas = new OffscreenCanvas(depthWidth, depthHeight);
+        using var depthCtx = depthCanvas.Get2DContext();
+        // Draw the depth map ImageData onto the OffscreenCanvas
+        depthCtx.PutImageData(depthImageData, 0, 0);
+        // Create an OffscreenCanvas for the final output
+        var canvas = new OffscreenCanvas(outWidth, outHeight);
+        using var ctx = canvas.Get2DContext();
+        // draw rgb image
+        ctx.DrawImage(rgbFrame, 0, 0, width, height);
+        // draw depth map
+        ctx.DrawImage(depthCanvas, width, 0, width, height);
+        return canvas;
+    }
+    byte[] Grayscale1BPPToRGBA(byte[] grayscaleData, int width, int height)
+    {
+        var ret = new byte[width * height * 4];
+        for (var i = 0; i < grayscaleData.Length; i++)
+        {
+            var grayValue = grayscaleData[i];
+            ret[i * 4] = grayValue;     // Red
+            ret[i * 4 + 1] = grayValue; // Green
+            ret[i * 4 + 2] = grayValue; // Blue
+            ret[i * 4 + 3] = 255;       // Alpha
+        }
+        return ret;
+    }
+    bool IsDisposed = false;
+    public void Dispose()
+    {
+        if (IsDisposed) return;
+        IsDisposed = true;
+        // Clean up resources if necessary
+        Stop();
+        if (fileInput != null)
+        {
+            fileInput.OnChange -= FileInput_OnChange;
+            fileInput = null;
+        }
+        if (scaleEl != null)
+        {
+            scaleEl.OnChange -= Scale_OnChange;
+            scaleEl.Dispose();
+            scaleEl = null;
+        }
+        activeRenderer?.Dispose();
+        video?.Dispose();
+        window?.Dispose();
+    }
+}

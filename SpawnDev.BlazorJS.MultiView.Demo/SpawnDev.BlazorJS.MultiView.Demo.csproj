@@ -1,27 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<CompressionEnabled>false</CompressionEnabled>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <Content Remove="wwwroot\icon-128.png" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.16" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.16" PrivateAssets="all" />
+		<PackageReference Include="SpawnDev.BlazorJS.TransformersJS" Version="1.4.0" />
+		<PackageReference Include="SpawnDev.BlazorJS" Version="2.19.0" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <None Include="wwwroot\icon-128.png" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.16" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.16" PrivateAssets="all" />
-    <PackageReference Include="SpawnDev.BlazorJS.TransformersJS" Version="1.4.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\SpawnDev.BlazorJS.MultiView\SpawnDev.BlazorJS.MultiView.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\SpawnDev.BlazorJS.MultiView\SpawnDev.BlazorJS.MultiView.csproj" />
+	</ItemGroup>
 
 </Project>
