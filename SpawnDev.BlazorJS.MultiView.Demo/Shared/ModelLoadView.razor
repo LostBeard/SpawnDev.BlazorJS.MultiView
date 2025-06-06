@@ -1,0 +1,28 @@
+﻿@using SpawnDev.BlazorJS.TransformersJS
+<div style="@(DisplayIt ? "" : "display: none;")">
+    @foreach (var progress in ModelProgresses.Values)
+    {
+        <div>
+            <ProgressBar Label="@($"{progress.Name}/{progress.File} {BytesToHumanReadable(progress.Loaded ?? 0)}/{BytesToHumanReadable(progress.Total ?? 0)}")" Progress="@(progress.Status == "done" ? 100 : progress.Progress ?? 0)" />
+        </div>
+    }
+</div>
+@code {
+    [Parameter]
+    public Dictionary<string, ModelLoadProgress> ModelProgresses { get; set; } = new();
+
+    bool DisplayIt => ModelProgresses.Any(o => o.Value.Progress > 0d && o.Value.Progress < 100d);
+
+    public static string BytesToHumanReadable(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB", "TB", "PB", "EB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+}

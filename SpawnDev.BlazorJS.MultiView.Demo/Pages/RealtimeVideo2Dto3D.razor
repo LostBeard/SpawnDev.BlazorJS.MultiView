@@ -2,10 +2,13 @@
 @using SpawnDev.BlazorJS
 @using SpawnDev.BlazorJS.JSObjects
 @using System.Diagnostics
+@using SpawnDev.BlazorJS.MultiView
+@using SpawnDev.BlazorJS.MultiView.Demo.Shared
+@using SpawnDev.BlazorJS.TransformersJS.DepthAnythingV2
 @using SpawnDev.BlazorJS.TransformersJS
 @implements IDisposable
 
-<div>
+<div class="container">
     <h3>Realtime Video 2D to 3D</h3>
     <div>
         In this demo, each video frame is converted to 3D using <a href="https://github.com/LostBeard/SpawnDev.BlazorJS.TransformersJS">SpawnDev.BlazorJS.TransformersJS</a> and RequestVideoFrameCallback.
@@ -56,11 +59,17 @@
         <button disabled="@startButtonDisabled" @onclick=@(() => Start())>Start</button>
         <button disabled="@stopButtonDisabled" @onclick=@(() => Stop())>Stop</button>
     </div>
+    <div style="padding: 0.5rem 0; max-width: 600px;">
+        <ModelLoadView ModelProgresses="@DepthAnythingService.ModelProgresses" />
+    </div>
 </div>
 
 @code {
     [Inject]
     BlazorJSRuntime JS { get; set; } = default!;
+
+    [Inject]
+    DepthAnythingService DepthAnythingService { get; set; } = default!;
 
     ElementReference outputCanvasRef;
     HTMLCanvasElement? outputCanvas;
@@ -84,8 +93,8 @@
     double scale = 0.5d;
     double fps = 0;
     Stopwatch sw = Stopwatch.StartNew();
-    bool stopButtonDisabled => false;
-    bool startButtonDisabled => !initComplete;
+    bool stopButtonDisabled => string.IsNullOrEmpty(videoUrlObject) || busy;
+    bool startButtonDisabled => !initComplete || sourceFile == null || !string.IsNullOrEmpty(videoUrlObject) || busy;
     string? camErrorMessage = null;
     double frameCount = 0;
     MultiviewRenderer? activeRenderer => Renderers[RendererIndex];
@@ -95,17 +104,16 @@
     int RendererIndex = 0;
     bool initComplete = false;
     List<MultiviewRenderer> Renderers = new List<MultiviewRenderer>();
-
-    Dictionary<string, ModelLoadProgress> ModelProgresses = new();
-    ActionCallback<ModelLoadProgress>? OnProgress = null;
+    bool busy = false;
+    bool beenInit = false;
     CanvasRenderingContext2D? ctx;
-
     bool supportsVideoFrameCallback = false;
     bool supportsWindowAnimationCallback = false;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            beenInit = true;
             // Init
             outputCanvas = new HTMLCanvasElement(outputCanvasRef);
             ctx = outputCanvas.Get2DContext();
@@ -130,13 +138,15 @@
             level3DEl = new HTMLInputElement(level3DRef);
             level3DEl.OnChange += Level_OnChange;
             // depth estimation pipeline initialization
-            OnProgress = new ActionCallback<ModelLoadProgress>(Pipeline_OnProgress);
-            var transformers = await Transformers.Init();
-            pipeline = await transformers.DepthEstimationPipeline(model, new PipelineOptions { Device = UseWebGPU ? "webgpu" : null, OnProgress = OnProgress });
+            DepthAnythingService.OnStateChange += DepthAnythingService_OnStateChange;
             initComplete = true;
             RequeueUpdate();
             StateHasChanged();
         }
+    }
+    void DepthAnythingService_OnStateChange()
+    {
+        StateHasChanged();
     }
     void FileInput_OnChange(Event ev)
     {
@@ -163,24 +173,6 @@
         {
             Debug.WriteLine($"Error playing source: {ex.Message}");
         }
-    }
-    void Pipeline_OnProgress(ModelLoadProgress obj)
-    {
-        if (obj.File != null)
-        {
-            if (ModelProgresses.TryGetValue(obj.File, out var progress))
-            {
-                progress.Status = obj.Status;
-                if (obj.Progress != null) progress.Progress = obj.Progress;
-                if (obj.Total != null) progress.Total = obj.Total;
-                if (obj.Loaded != null) progress.Loaded = obj.Loaded;
-            }
-            else
-            {
-                ModelProgresses[obj.File] = obj;
-            }
-        }
-        StateHasChanged();
     }
     void Scale_OnChange()
     {
@@ -241,18 +233,32 @@
         Stop();
         try
         {
+            busy = true;
             camErrorMessage = "";
             StateHasChanged();
-            videoUrlObject = sourceFile == null ? null : URL.CreateObjectURL(sourceFile);
-            video.Src = videoUrlObject;
-            video.Load();
-            await video.Play();
+            if (pipeline == null)
+            {
+                // var transformers = await Transformers.Init();
+                // pipeline = await transformers.DepthEstimationPipeline(model, new PipelineOptions { Device = UseWebGPU ? "webgpu" : null, OnProgress = OnProgress });
+                pipeline = await DepthAnythingService.GetDepthEstimationPipeline();
+            }
+            if (sourceFile != null)
+            {
+                videoUrlObject = sourceFile == null ? null : URL.CreateObjectURL(sourceFile);
+                video.Src = videoUrlObject;
+                video.Load();
+                await video.Play();
+            }
         }
         catch (Exception ex)
         {
-            camErrorMessage = $"Camera access failed: {ex.Message}";
+            camErrorMessage = $"Video play failed: {ex.Message}";
             JS.Log($"Start failed: {ex.Message}");
             Stop();
+        }
+        finally
+        {
+            busy = false;
         }
     }
     bool UpdateCallbackRunning = false;
@@ -265,11 +271,12 @@
             var rgbWidth = video.VideoWidth;
             var rgbHeight = video.VideoHeight;
 
+            // Create an OffscreenCanvas to draw the full size VideoFrame
             using var rgbCanvas = new OffscreenCanvas(rgbWidth, rgbHeight);
             using var rgbCtx = rgbCanvas.Get2DContext();
             rgbCtx.DrawImage(video, 0, 0, rgbWidth, rgbHeight);
 
-            // Create an OffscreenCanvas to draw the VideoFrame
+            // Create an OffscreenCanvas to draw the scaled VideoFrame
             var depthWidth = (int)(rgbWidth * scale);
             var depthHeight = (int)(rgbHeight * scale);
 
@@ -278,7 +285,10 @@
             rgbCtxScaled.DrawImage(rgbCanvas, 0, 0, depthWidth, depthHeight);
 
             // Convert the OffscreenCanvas to a RawImage for processing
-            using var rgbImageScaled = RawImage.FromCanvas(rgbCanvasScaled);
+            using var rgbImageScaled = JS.Call<RawImage>("Transformers.RawImage.fromCanvas", rgbCanvasScaled);// RawImage.FromCanvas(rgbCanvasScaled);
+
+            // uncomment after next Transformer.js update
+            // using var rgbImageScaled = RawImage.FromCanvas(rgbCanvasScaled);
 
             // Run the depth estimation pipeline on the RGB image
             using var depthResult = await pipeline!.Call(rgbImageScaled);
@@ -305,7 +315,7 @@
             Console.WriteLine($"UpdateCallback error: {ex.Message}");
         }
         finally
-        {            
+        {
             // update fps
             frameCount += 1;
             var elapsedSeconds = sw.Elapsed.TotalSeconds;
@@ -391,6 +401,11 @@
     {
         if (IsDisposed) return;
         IsDisposed = true;
+        if (beenInit)
+        {
+            beenInit = false;
+            DepthAnythingService.OnStateChange -= DepthAnythingService_OnStateChange;
+        }
         // Clean up resources if necessary
         Stop();
         if (fileInput != null)
