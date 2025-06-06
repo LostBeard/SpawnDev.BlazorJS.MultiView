@@ -57,6 +57,32 @@ namespace SpawnDev.BlazorJS.MultiView
             // float brg = agdata[19];
             // float brb = agdata[20];
             new AnaglyphProfile{
+                Name = "Red Cyan",
+                Data = new float[]{
+                    0.0f,
+                    0.0f,
+                    0.0f,
+                    0.456f,
+                    0.500f,
+                    0.176f,
+                    -0.043f,
+                    -0.088f,
+                    -0.002f,
+                    -0.040f,
+                    -0.038f,
+                    -0.016f,
+                    0.378f,
+                    0.734f,
+                    -0.018f,
+                    -0.015f,
+                    -0.021f,
+                    -0.005f,
+                    -0.072f,
+                    -0.113f,
+                    1.226f
+                }
+            },
+            new AnaglyphProfile{
                 Name = "Green Magenta",
                 Data = new float[]{
                     0.0f,   // brightness
@@ -82,32 +108,6 @@ namespace SpawnDev.BlazorJS.MultiView
                     0.937f
                 }
             },
-            new AnaglyphProfile{
-                Name = "Red Cyan",
-                Data = new float[]{
-                    0.0f,
-                    0.0f,
-                    0.0f,
-                    0.456f,
-                    0.500f,
-                    0.176f,
-                    -0.043f,
-                    -0.088f,
-                    -0.002f,
-                    -0.040f,
-                    -0.038f,
-                    -0.016f,
-                    0.378f,
-                    0.734f,
-                    -0.018f,
-                    -0.015f,
-                    -0.021f,
-                    -0.005f,
-                    -0.072f,
-                    -0.113f,
-                    1.226f
-                }
-            }
         };
         public AnaglyphRenderer() : base()
         {
