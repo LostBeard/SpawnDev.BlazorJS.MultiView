@@ -12,7 +12,7 @@ namespace SpawnDev.BlazorJS.MultiView
         public float Level3D { get; set; } = 1f;
         public float SepMax { get; set; } = 0.020f;
         public float Focus3D { get; set; } = 0.5f;
-        public bool AutoSize { get; set; } = true;
+        //public bool AutoSize { get; set; } = true;
         protected MultiviewRenderer()
         {
             OffscreenCanvas = new OffscreenCanvas(1, 1);
@@ -52,11 +52,17 @@ namespace SpawnDev.BlazorJS.MultiView
             // Create a buffer to put three 2d clip space points in
             positionBuffer ??= gl.CreateBuffer();
 
-            // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
-            gl.BindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            if (OutWidth != outWidth || OutHeight != outHeight)
+            {
+                OutWidth = outWidth;
+                OutHeight = outHeight;
 
-            // Write the 6 points (2 triangles) to the buffer
-            WebGLUtilities.SetRectangle(gl, 0, 0, outWidth, outHeight);
+                // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
+                gl.BindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+                // Write the 6 points (2 triangles) to the buffer
+                WebGLUtilities.SetRectangle(gl, 0, 0, outWidth, outHeight);
+            }
 
             // provide texture coordinates for the rectangle.
             if (texCoordBuffer == null)
@@ -77,6 +83,9 @@ namespace SpawnDev.BlazorJS.MultiView
 
             // input texture
             videoSampler ??= CreateImageTexture();
+
+            // depth texture
+            depthSampler ??= CreateImageTexture();
 
             // overlay texture
             overlayTexture ??= CreateImageTexture();
@@ -122,11 +131,11 @@ namespace SpawnDev.BlazorJS.MultiView
             get => Canvas?.Width ?? OffscreenCanvas?.Width ?? 0;
             set
             {
-                if (Canvas != null)
+                if (Canvas != null && Canvas.Width != value)
                 {
                     Canvas.Width = value;
                 }
-                else if (OffscreenCanvas != null)
+                else if (OffscreenCanvas != null && OffscreenCanvas.Width != value)
                 {
                     OffscreenCanvas.Width = value;
                 }
@@ -137,70 +146,43 @@ namespace SpawnDev.BlazorJS.MultiView
             get => Canvas?.Height ?? OffscreenCanvas?.Height ?? 0;
             set
             {
-                if (Canvas != null)
+                if (Canvas != null && Canvas.Width != value)
                 {
                     Canvas.Height = value;
                 }
-                else if (OffscreenCanvas != null)
+                else if (OffscreenCanvas != null && OffscreenCanvas.Width != value)
                 {
                     OffscreenCanvas.Height = value;
                 }
             }
         }
-        public void SetOutputSize(int width, int height)
-        {
-            if (Canvas != null)
-            {
-                Canvas.Width = width;
-                Canvas.Height = height;
-            }
-            else if (OffscreenCanvas != null)
-            {
-                OffscreenCanvas.Width = width;
-                OffscreenCanvas.Height = height;
-            }
-        }
-
+        //public void SetOutputSize(int width, int height)
+        //{
+        //    if (Canvas != null)
+        //    {
+        //        Canvas.Width = width;
+        //        Canvas.Height = height;
+        //    }
+        //    else if (OffscreenCanvas != null)
+        //    {
+        //        OffscreenCanvas.Width = width;
+        //        OffscreenCanvas.Height = height;
+        //    }
+        //}
         WebGLTexture? videoSampler = null;
+        WebGLTexture? depthSampler = null;
         WebGLTexture? overlayTexture = null;
 
         public virtual string OutFormat { get; } = "2d"; // default output format, can be overridden by derived classes
-
-        string _InFormat = "2d";
-        public string InFormat
-        {
-            get => _InFormat;
-            set
-            {
-                _InFormat = value;
-            }
-        }
         public int FrameWidth { get; private set; }
         public int FrameHeight { get; private set; }
+        public int DepthWidth { get; private set; }
+        public int DepthHeight { get; private set; }
         public int OverlayWidth { get; private set; }
         public int OverlayHeight { get; private set; }
         public string? Source { get; private set; }
-        public void SetInput(HTMLImageElement image, string inFormat)
+        public void SetInput(OffscreenCanvas canvas)
         {
-            if (string.IsNullOrEmpty(inFormat)) inFormat = "2d";
-            if (Source == image.Src && InFormat == inFormat) return;
-            Source = image.Src;
-            if (FrameWidth != image.NaturalWidth || FrameHeight != image.NaturalHeight)
-            {
-                FrameWidth = image.NaturalWidth;
-                FrameHeight = image.NaturalHeight;
-                // input size changed
-            }
-            InFormat = inFormat;
-            videoSampler ??= CreateImageTexture();
-            // Upload the image into the texture.
-            gl.ActiveTexture(gl.TEXTURE1);
-            gl.BindTexture(gl.TEXTURE_2D, videoSampler);
-            gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-        }
-        public void SetInput(OffscreenCanvas canvas, string inFormat)
-        {
-            if (string.IsNullOrEmpty(inFormat)) inFormat = "2d";
             Source = "";
             if (FrameWidth != canvas.Width || FrameHeight != canvas.Height)
             {
@@ -208,13 +190,44 @@ namespace SpawnDev.BlazorJS.MultiView
                 FrameHeight = canvas.Height;
                 // input size changed
             }
-            InFormat = inFormat;
+            videoSampler ??= CreateImageTexture();
+            // Upload the image into the texture.
+            gl.ActiveTexture(gl.TEXTURE1);
+            // Bind videoSampler to TEXTURE1
+            gl.BindTexture(gl.TEXTURE_2D, videoSampler);
+            gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+        }
+        public void SetInput(HTMLImageElement image)
+        {
+            if (Source == image.Src) return;
+            Source = image.Src;
+            if (FrameWidth != image.NaturalWidth || FrameHeight != image.NaturalHeight)
+            {
+                FrameWidth = image.NaturalWidth;
+                FrameHeight = image.NaturalHeight;
+                // input size changed
+            }
             videoSampler ??= CreateImageTexture();
             // Upload the image into the texture.
             gl.ActiveTexture(gl.TEXTURE1);
             gl.BindTexture(gl.TEXTURE_2D, videoSampler);
-            //gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-            gl.JSRef!.CallVoid("texImage2D", gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+            gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        }
+        public void SetDepth(int width, int height, Uint8Array depth)
+        {
+            if (DepthWidth != width || DepthHeight != height)
+            {
+                DepthWidth = width;
+                DepthHeight = height;
+                // depth size changed
+            }
+            depthSampler ??= CreateImageTexture();
+            // Upload the image into the texture.
+            gl.ActiveTexture(gl.TEXTURE2);
+            // Bind depthSampler to TEXTURE2
+            gl.BindTexture(gl.TEXTURE_2D, depthSampler);
+            // Write data as 1 byte per pixel which will be read from the alpha channel of depthSampler in the fragment shader
+            gl.TexImage2D(gl.TEXTURE_2D, 0, gl.ALPHA, width, height, 0, gl.ALPHA, gl.UNSIGNED_BYTE, depth);
         }
         public void SetOverlay(HTMLImageElement image)
         {
@@ -232,152 +245,58 @@ namespace SpawnDev.BlazorJS.MultiView
         }
         public void Render()
         {
-            int frameCols = 1;
-            int frameRows = 1;
             bool views_index_invert = false;
-            var primaryViewIndex = 0;
-            var inputLayout = 0; // 0 = tiled views, 1 = 2D+Z
-            switch (InFormat)
-            {
-                case "2dz":
-                    frameCols = 2;
-                    inputLayout = 1;
-                    break;
-                case "2d":
-                default:
-                    frameCols = 1;
-                    inputLayout = 1;
-                    break;
-            }
-            var viewWidth = (int)Math.Round((float)FrameWidth / (float)frameCols);
-            var viewHeight = (int)Math.Round((float)FrameHeight / (float)frameRows);
-            var outHeight = 0;
-            var outWidth = 0;
-            if (AutoSize)
-            {
-                outWidth = viewWidth;
-                outHeight = viewHeight;
-                SetOutputSize(outWidth, outHeight);
-            }
-            else
-            {
-                outWidth = OutWidth;
-                outHeight = OutHeight;
-            }
+            var outWidth = FrameWidth;
+            var outHeight = FrameHeight;
             Init(outWidth, outHeight);
-            var OutAspectRatio = (float)outHeight / (float)outWidth;
-            var views_in_cnt = frameCols * frameRows;
-            float viewAspectRatio = (float)viewHeight / (float)viewWidth;
-            //if (frameCols == frameRows * 2f)
-            //{
-            //    // check for half width views
-            //    if (viewAspectRatio > 0.8)
-            //    {
-            //        // appears to be half width so double the view width
-            //        viewWidth *= 2;
-            //        viewAspectRatio = (float)viewHeight / (float)viewWidth;
-            //    }
-            //}
-            //else if (frameCols * 2f == frameRows)
-            //{
-            //    // check for half height views
-            //    if (viewWidth > viewHeight * 2f)
-            //    {
-            //        viewHeight *= 2;
-            //        viewAspectRatio = (float)viewHeight / (float)viewWidth;
-            //    }
-            //}
-            var videoScaleU = 1f;
-            var videoScaleV = 1f;
-            var videoPaddingU = 0f;
-            var videoPaddingV = 0f;
-            if (viewAspectRatio > OutAspectRatio)
-            {
-                float scaleY = (float)viewHeight / (float)outHeight;
-                float scaledWidth = (float)viewWidth / scaleY;
-                videoScaleU = (float)outWidth / scaledWidth;
-                videoPaddingU = (videoScaleU - 1f) / 2f;
-            }
-            else if (viewAspectRatio < OutAspectRatio)
-            {
-                float scaleX = (float)viewWidth / (float)outWidth;
-                float scaledHeight = (float)viewHeight / scaleX;
-                videoScaleV = (float)outHeight / scaledHeight;
-                videoPaddingV = (videoScaleV - 1f) / 2f;
-            }
+            //var OutAspectRatio = (float)outHeight / (float)outWidth;
 
             gl.UseProgram(program);
 
-            //// overlay texture
-            //uniform sampler2D textureSampler;
-            // set textureSampler to use TEXTURE0
-            Uniform1i("textureSampler", 0);
-            // set TEXTURE0 active
+            // Overlay image
+            // set active
             gl.ActiveTexture(gl.TEXTURE0);
             // attach overlayTexture texture to the active texture (gl.TEXTURE0 here)
             gl.BindTexture(gl.TEXTURE_2D, overlayTexture);
+            // set textureSampler to use TEXTURE0
+            Uniform1i("textureSampler", 0);
 
-            //// 1 or more 2D views tiled, or 2D+Z
-            //uniform sampler2D videoSampler;
-            ////uniform sampler2D ui2Sampler;	// only needed if mouse needs its own texture
-            // set videoSampler to use TEXTURE0
-            Uniform1i("videoSampler", 1);
-            // set TEXTURE1 active
+            // Source 2D image
+            // set active
             gl.ActiveTexture(gl.TEXTURE1);
             // attach videoSampler texture to the active texture (gl.TEXTURE1 here)
             gl.BindTexture(gl.TEXTURE_2D, videoSampler);
+            // set videoSampler to use TEXTURE1
+            Uniform1i("videoSampler", 1);
 
-            //uniform vec2 screenSize;
-            Uniform2f("screenSize", outWidth, outHeight);
-
-            //uniform int inputLayout;    // 0 = tiled views, 1 = 2D+Z, 2 = 2D+ZD
-            Uniform1i("inputLayout", inputLayout);
-
-            // tiled input info (used by all input even single view)
-            //uniform vec2 cols_rows_in; // = vec2(4.0, 2.0);
-            Uniform2f("cols_rows_in", frameCols, frameRows);
+            // Generated depth image
+            // set active
+            gl.ActiveTexture(gl.TEXTURE2);
+            // attach depthSampler texture to the active texture (gl.TEXTURE2 here)
+            gl.BindTexture(gl.TEXTURE_2D, depthSampler);
+            // set depthSampler to use TEXTURE2
+            Uniform1i("depthSampler", 2);
 
             //uniform bool views_index_invert_x; // false 0x is left, true 0x is right
             Uniform1i("views_index_invert_x", views_index_invert ? 1 : 0);
 
-            //uniform bool views_index_invert_y; // false 0y is top, true 0y is bottom
-            Uniform1i("views_index_invert_y", views_index_invert ? 1 : 0);
+            // screen size used in the vertex shader
+            Uniform2f("screenSize", outWidth, outHeight);
 
-            //uniform float views_in_cnt; // = cols_rows_in.x * cols_rows_in.y;
-            Uniform1f("views_in_cnt", views_in_cnt);
+            // if 2d+z below 2 uniforms must be set
+            var outPixelWidth = 1.0f / (float)outWidth;
+            // handle extra data needed for 2dz and 2dzd
+            var sep_max_x = SepMax * Level3D; // (RenderManager.settings["3d_level_global"].value);
+            var sep_max_modifier = 900f / (float)outWidth;
+            sep_max_x = sep_max_x * sep_max_modifier;
+            //sep_max_x = sep_max_x - (sep_max_x % rC0[1]);
+            int loop_cnt = (int)Math.Ceiling(sep_max_x / outPixelWidth) + 2;
+            //uniform float rC0[4];
+            Uniform1fv("rC0", [sep_max_x, outPixelWidth, outPixelWidth * 0.5f, Focus3D]);
+            //uniform int rI0[1];
+            Uniform1iv("rI0", [loop_cnt]);
 
-            //uniform float views_in_max_index; // = views_in_cnt - 1.0;
-            Uniform1f("views_in_max_index", views_in_cnt - 1);
-
-            //uniform float primaryViewIndex;
-            Uniform1f("primaryViewIndex", primaryViewIndex);
-
-            //uniform vec2 view_size_in; // = 1.0 / cols_rows_in;
-            Uniform2f("view_size_in", 1f / (float)frameCols, 1f / (float)frameRows);
-
-            if (inputLayout == 1)
-            {
-                // if 2d+z below 2 uniforms must be set
-                var outPixelWidth = 1.0f / (float)outWidth;
-                // handle extra data needed for 2dz and 2dzd
-                var sep_max_x = SepMax * Level3D; // (RenderManager.settings["3d_level_global"].value);
-                var sep_max_modifier = 900f / (float)viewWidth;
-                sep_max_x = sep_max_x * sep_max_modifier;
-                //sep_max_x = sep_max_x - (sep_max_x % rC0[1]);
-                int loop_cnt = (int)Math.Ceiling(sep_max_x / outPixelWidth) + 2;
-                //uniform float rC0[4];
-                Uniform1fv("rC0", [sep_max_x, outPixelWidth, outPixelWidth * 0.5f, Focus3D]);
-                //uniform int rI0[1];
-                Uniform1iv("rI0", [loop_cnt]);
-            }
-
-            //uniform vec2 uv_scale; // = vec2(1.0, 1.2);
-            Uniform2f("uv_scale", videoScaleU, videoScaleV);
-
-            //uniform vec2 uv_padding; // = vec2(0.0, 0.1);
-            Uniform2f("uv_padding", videoPaddingU, videoPaddingV);
-
-            // now apply implementing renderer's settings
+            // now apply implementing renderer's settings (usually sets uniforms, other pre-render stuff)
             ApplyEffect();
 
             // Tell WebGL how to convert from clip space to pixels
@@ -426,19 +345,6 @@ namespace SpawnDev.BlazorJS.MultiView
                 var count = 6;
                 gl.DrawArrays(primitiveType, offset, count);
             }
-        }
-        public WebGLTexture CreateImageTexture(HTMLImageElement image)
-        {
-            var texture = gl.CreateTexture();
-            gl.BindTexture(gl.TEXTURE_2D, texture);
-            // Set the parameters so we can render any size image.
-            gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-            gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-            gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-            // Upload the image into the texture.
-            gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-            return texture;
         }
         public WebGLTexture CreateImageTexture()
         {

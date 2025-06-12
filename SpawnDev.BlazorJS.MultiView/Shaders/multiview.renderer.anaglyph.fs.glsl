@@ -1,6 +1,6 @@
 // Multiview to many by Todd Tanner
 
-#include<multiview.fragment.glsl>
+#include<multiview.renderer.base.fs.glsl>
 
 uniform float agdata[21];
 
@@ -67,4 +67,5 @@ void main(void)
     //ret.rgb = mix(ret.rgb, uiColor.rgb, uiColor.a);
 	ret.a = 1.0;
     gl_FragColor = ret;
+	//gl_FragColor = vec4(1.0,0.0,0.0,1.0);// texture2D(videoSampler, vUV);
 }

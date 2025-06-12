@@ -1,4 +1,7 @@
-// Multiview to many by Todd Tanner
+// 2D+Z multi-view by Todd Tanner (LostBeard)
+// Improvements welcomed
+// This is a prtial fragment shader that can be included to allow easy access to psuedo-views 
+// from various angles that will be generated using the depth and rgb data
 
 #ifdef GL_ES
 precision highp float;
@@ -9,58 +12,37 @@ varying vec2 vUV;
 // overlay texture
 uniform sampler2D textureSampler;
 // custom uniforms
-uniform vec2 screenSize;
-// 1 or more 2D views tiled, or 2D+Z
+// frame image
 uniform sampler2D videoSampler;
+// frame depthmap
+// expected to be 1 byte per pixel representing the rgb pixel's depth in videoSampler with the same xy position
+// the depth value will be in the alpha channel
+uniform sampler2D depthSampler;
 // input layout type - 0 = tiled views, 1 = 2D+Z, 2 = 2D+ZD
-uniform int inputLayout;	
 // tiled input info (used by all input even single view)
-uniform vec2 cols_rows_in; // = vec2(4.0, 2.0);
+//uniform vec2 cols_rows_in; // = vec2(4.0, 2.0);
 uniform bool views_index_invert_x; // false 0x is left, true 0x is right
-uniform bool views_index_invert_y; // false 0y is top, true 0y is bottom
-uniform float views_in_cnt; // = cols_rows_in.x * cols_rows_in.y;
-uniform float views_in_max_index; // = views_in_cnt - 1.0;
-uniform float primaryViewIndex;
-uniform vec2 view_size_in; // = 1.0 / cols_rows_in;
+// uniform bool views_index_invert_y; // false 0y is top, true 0y is bottom
+// uniform float views_in_max_index; // = views_in_cnt - 1.0;
+// uniform float primaryViewIndex;
+// uniform vec2 view_size_in; // = 1.0 / cols_rows_in;
 // if 2d+z below uniforms must be set
 uniform float rC0[4];
 uniform int rI0[1];
 
-uniform vec2 uv_scale; // = vec2(1.0, 1.2);
-uniform vec2 uv_padding; // = vec2(0.0, 0.1);
-
 const vec4 colorBlack = vec4(0.0, 0.0, 0.0, 1.0);
-
-vec4 viewColorTiled(float view_index, vec2 view_uv) {
-	vec2 view_uv_corrected_aspect = view_uv * uv_scale - uv_padding;
-	if (view_uv_corrected_aspect.x < 0.0 || view_uv_corrected_aspect.x > 1.0 || view_uv_corrected_aspect.y < 0.0 || view_uv_corrected_aspect.y > 1.0) {
-		return colorBlack;
-	}
-	if (view_index > views_in_max_index) view_index = views_in_max_index;
-	vec2 view_indexes_in = vec2(mod(view_index, cols_rows_in.x), floor(view_index / cols_rows_in.x));
-	if (inputLayout == 0) {
-		if (views_index_invert_x) {
-			view_indexes_in.x = cols_rows_in.x - view_indexes_in.x - 1.0;
-		}
-		if (!views_index_invert_y) {
-			view_indexes_in.y = cols_rows_in.y - view_indexes_in.y - 1.0;
-		}
-	}
-	vec2 uv = (view_indexes_in * view_size_in) + (view_uv_corrected_aspect * view_size_in);
-	return texture2D(videoSampler, uv);
-}
 
 vec4 viewColor2DZ(float view_index, vec2 view_uv) {
 	vec4 o = vec4(0.0, 0.0, 0.0, 0.5);
 	if (views_index_invert_x) {
 		view_index *= -1.0;
-	}
+	}	
 	float sep_max_x = rC0[0] * abs(view_index);
 	float pixel_width = rC0[1];
 	float pixel_width_half = rC0[2];
 	float offset_f = rC0[3];
 	if (view_index == 0.0 || sep_max_x < pixel_width) {
-		o = viewColorTiled(0.0, view_uv);
+		o = texture2D(videoSampler, view_uv);
 	}
 	else {
 		//vec4 d = viewColorTiled(1.0, vUV);
@@ -88,7 +70,7 @@ vec4 viewColor2DZ(float view_index, vec2 view_uv) {
 		{
 			if (n >= rI0[0]) break;
 			uvNext.x = start_x + (pixel_width_signed * float(n));
-			pDepth = viewColorTiled(1.0, uvNext.xy).r;
+			pDepth = texture2D(depthSampler, uvNext.xy).a;
 			//pDepth = clamp(pDepth, 0.0, 1.0);
 			dest_x = uvNext.x + (pDepth * sep_max_x_signed) - offset_f_signed;
 			diff_x = abs(uv.x - dest_x);
@@ -109,13 +91,13 @@ vec4 viewColor2DZ(float view_index, vec2 view_uv) {
 		}
 		if (o.a == 1.0) {
 			//o = texture2D(mapToShift, vec2(cur_coord_x - (pixel_width * shiftMode), uvNext.y));
-			o = viewColorTiled(0.0, vec2(cur_coord_x, uvNext.y));
+			o = texture2D(videoSampler, vec2(cur_coord_x, uvNext.y));
 			//frag_out.c1.r = cur_depth;
 		}
 		else
 		{
 			// fill
-			o = viewColorTiled(0.0, vec2(lowestDepthX, uvNext.y));
+			o = texture2D(videoSampler, vec2(lowestDepthX, uvNext.y));
 			//frag_out.c1.r = lowestDepth; // vec4(lowestDepth, lowestDepth, lowestDepth, 1.0);
 		}
 	}
@@ -123,20 +105,15 @@ vec4 viewColor2DZ(float view_index, vec2 view_uv) {
 }
 
 vec4 viewColor(float view_index, vec2 view_uv) {
-	if (inputLayout == 0) {
-		return viewColorTiled(view_index, view_uv);
-	}
-	else {
-		return viewColor2DZ(view_index, view_uv);
-	}
+	return viewColor2DZ(view_index, view_uv);
 }
 
 vec4 pseudoSBS(vec2 view_uv) {
 	if (view_uv.x > 0.5) {
-		return viewColorTiled(1.0, vec2((view_uv.x - 0.5) * 2.0, view_uv.y));
+		return viewColor2DZ(1.0, vec2((view_uv.x - 0.5) * 2.0, view_uv.y));
 	}
 	else {
-		return viewColorTiled(0.0, vec2(view_uv.x * 2.0, view_uv.y));
+		return viewColor2DZ(0.0, vec2(view_uv.x * 2.0, view_uv.y));
 	}
 }
 

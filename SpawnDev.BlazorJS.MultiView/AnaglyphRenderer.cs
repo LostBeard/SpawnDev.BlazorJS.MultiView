@@ -119,12 +119,12 @@ namespace SpawnDev.BlazorJS.MultiView
         }
         void Init()
         {
-            var vertexShader = EmbeddedShaderLoader.GetShaderString("multiview.vertex.glsl");
+            var vertexShader = EmbeddedShaderLoader.GetShaderString("multiview.renderer.vs.glsl");
             if (string.IsNullOrEmpty(vertexShader))
             {
                 throw new Exception("Vertex shader not found");
             }
-            var fragmentShader = EmbeddedShaderLoader.GetShaderString("anaglyph.fragment.glsl");
+            var fragmentShader = EmbeddedShaderLoader.GetShaderString("multiview.renderer.anaglyph.fs.glsl");
             if (string.IsNullOrEmpty(fragmentShader))
             {
                 throw new Exception("Fragment shader not found");

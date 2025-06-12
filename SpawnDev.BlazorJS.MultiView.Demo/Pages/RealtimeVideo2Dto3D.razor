@@ -292,13 +292,16 @@
 
             // Run the depth estimation pipeline on the RGB image
             using var depthResult = await pipeline!.Call(rgbImageScaled);
+            using var depth = depthResult.Depth;
+            using var depthmapData = depth.Data;
 
-            // Merge the 2D image and the depth result into a single canvas
-            using var rgbZCanvas = Merge2DWithDepthToCanvas2DZ(rgbCanvas, depthResult);
+            // // Merge the 2D image and the depth result into a single canvas
+            // using var rgbZCanvas = Merge2DWithDepthToCanvas2DZ(rgbCanvas, depthResult);
 
             activeRenderer.Level3D = Level3D;
             activeRenderer.Focus3D = Focus3D;
-            activeRenderer.SetInput(rgbZCanvas, "2dz");
+            activeRenderer.SetInput(rgbCanvas);
+            activeRenderer.SetDepth(depth.Width, depth.Height, depthmapData);
             activeRenderer.Render();
 
             if (outputCanvas.ClientWidth != rgbWidth || outputCanvas.ClientHeight != rgbHeight)

@@ -22,19 +22,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <None Remove="Shaders\anaglyph.fragment.glsl" />
-	  <None Remove="Shaders\basic.fragment.glsl" />
-	  <None Remove="Shaders\basic.vertex.glsl" />
-	  <None Remove="Shaders\multiview.fragment.glsl" />
-	  <None Remove="Shaders\multiview.vertex.glsl" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <EmbeddedResource Include="Shaders\anaglyph.fragment.glsl" />
-	  <EmbeddedResource Include="Shaders\basic.fragment.glsl" />
-	  <EmbeddedResource Include="Shaders\basic.vertex.glsl" />
-	  <EmbeddedResource Include="Shaders\multiview.fragment.glsl" />
-	  <EmbeddedResource Include="Shaders\multiview.vertex.glsl" />
+	  <EmbeddedResource Include="Shaders\multiview.renderer.anaglyph.fs.glsl" />
+	  <EmbeddedResource Include="Shaders\multiview.renderer.base.fs.glsl" />
+	  <EmbeddedResource Include="Shaders\multiview.renderer.vs.glsl" />
 	</ItemGroup>
 
 	<ItemGroup>
