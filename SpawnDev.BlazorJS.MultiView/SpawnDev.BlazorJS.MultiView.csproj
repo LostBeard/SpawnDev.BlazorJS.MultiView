@@ -4,7 +4,7 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<Version>1.2.0</Version>
+		<Version>1.3.0</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -35,7 +35,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.16" />
-		<PackageReference Include="SpawnDev.BlazorJS" Version="2.19.0" />
+		<PackageReference Include="SpawnDev.BlazorJS" Version="2.20.0" />
 	</ItemGroup>
 
 	<ItemGroup>
