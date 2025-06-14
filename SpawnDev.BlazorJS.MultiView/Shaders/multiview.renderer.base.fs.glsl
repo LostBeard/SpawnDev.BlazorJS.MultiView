@@ -3,9 +3,7 @@
 // This is a prtial fragment shader that can be included to allow easy access to psuedo-views 
 // from various angles that will be generated using the depth and rgb data
 
-#ifdef GL_ES
 precision highp float;
-#endif
 
 // uniforms required for PostProcess
 varying vec2 vUV;
@@ -18,15 +16,7 @@ uniform sampler2D videoSampler;
 // expected to be 1 byte per pixel representing the rgb pixel's depth in videoSampler with the same xy position
 // the depth value will be in the alpha channel
 uniform sampler2D depthSampler;
-// input layout type - 0 = tiled views, 1 = 2D+Z, 2 = 2D+ZD
-// tiled input info (used by all input even single view)
-//uniform vec2 cols_rows_in; // = vec2(4.0, 2.0);
 uniform bool views_index_invert_x; // false 0x is left, true 0x is right
-// uniform bool views_index_invert_y; // false 0y is top, true 0y is bottom
-// uniform float views_in_max_index; // = views_in_cnt - 1.0;
-// uniform float primaryViewIndex;
-// uniform vec2 view_size_in; // = 1.0 / cols_rows_in;
-// if 2d+z below uniforms must be set
 uniform float rC0[4];
 uniform int rI0[1];
 

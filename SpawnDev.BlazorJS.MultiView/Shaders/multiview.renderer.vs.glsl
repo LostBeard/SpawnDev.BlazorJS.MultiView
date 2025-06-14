@@ -1,25 +1,15 @@
-// Multiview to many by Todd Tanner
+// https://stackoverflow.com/questions/24104939/rendering-a-fullscreen-quad-using-webgl/24112706#24112706
+precision mediump float;
 
-attribute vec2 a_position;
-attribute vec2 a_texCoord;
-
-uniform vec2 screenSize;
+// xy = vertex position in normalized device coordinates ([-1,+1] range).
+attribute vec2 vertexPosition;
 
 varying vec2 vUV;
 
-void main() {
-   // convert the rectangle from pixels to 0.0 to 1.0
-   vec2 zeroToOne = a_position / screenSize;
+const vec2 scale = vec2(0.5, 0.5);
 
-   // convert from 0->1 to 0->2
-   vec2 zeroToTwo = zeroToOne * 2.0;
-
-   // convert from 0->2 to -1->+1 (clipspace)
-   vec2 clipSpace = zeroToTwo - 1.0;
-
-   gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
-
-   // pass the texCoord to the fragment shader
-   // The GPU will interpolate this value between points.
-   vUV = a_texCoord;
+void main()
+{
+    vUV  = vertexPosition * scale + scale; // scale vertex attribute to [0,1] range
+    gl_Position = vec4(vertexPosition.x, -vertexPosition.y, 0.0, 1.0);
 }

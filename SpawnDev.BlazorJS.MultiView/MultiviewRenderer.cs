@@ -1,131 +1,20 @@
 ﻿using SpawnDev.BlazorJS.JSObjects;
-using SpawnDev.BlazorJS.MultiView.Utils;
 
 namespace SpawnDev.BlazorJS.MultiView
 {
     public abstract class MultiviewRenderer : IDisposable
     {
-        public OffscreenCanvas? OffscreenCanvas { get; private set; }
-        public HTMLCanvasElement? Canvas { get; private set; }
-        public WebGLRenderingContext gl { get; private set; }
+        public OffscreenCanvas? OffscreenCanvas { get; protected set; }
+        public HTMLCanvasElement? Canvas { get; protected set; }
+        public WebGLRenderingContext gl { get; protected set; }
         public WebGLProgram program { get; protected set; }
         public float Level3D { get; set; } = 1f;
         public float SepMax { get; set; } = 0.020f;
         public float Focus3D { get; set; } = 0.5f;
-        //public bool AutoSize { get; set; } = true;
-        protected MultiviewRenderer()
-        {
-            OffscreenCanvas = new OffscreenCanvas(1, 1);
-            gl = OffscreenCanvas.GetWebGLContext(new WebGLContextAttributes
-            {
-                PreserveDrawingBuffer = true,
-            });
-            // classes that implement this class will create he shader program
-        }
-        protected MultiviewRenderer(HTMLCanvasElement canvas)
-        {
-            this.Canvas = canvas;
-            gl = canvas.GetWebGLContext(new WebGLContextAttributes
-            {
-                PreserveDrawingBuffer = true,
-            });
-            // classes that implement this class will create the shader program
-        }
-        public void Dispose()
-        {
-
-        }
-        public virtual void ApplyEffect()
-        {
-
-        }
-        WebGLBuffer? positionBuffer = null;
-        WebGLBuffer? texCoordBuffer = null;
-        int positionLocation = 0;
-        int texcoordLocation = 0;
-        void Init(int outWidth, int outHeight)
-        {
-            // look up where the vertex data needs to go.
-            positionLocation = gl.GetAttribLocation(program, "a_position");
-            texcoordLocation = gl.GetAttribLocation(program, "a_texCoord");
-
-            // Create a buffer to put three 2d clip space points in
-            positionBuffer ??= gl.CreateBuffer();
-
-            if (OutWidth != outWidth || OutHeight != outHeight)
-            {
-                OutWidth = outWidth;
-                OutHeight = outHeight;
-
-                // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
-                gl.BindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
-                // Write the 6 points (2 triangles) to the buffer
-                WebGLUtilities.SetRectangle(gl, 0, 0, outWidth, outHeight);
-            }
-
-            // provide texture coordinates for the rectangle.
-            if (texCoordBuffer == null)
-            {
-                texCoordBuffer = gl.CreateBuffer();
-                gl.BindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
-                using var texCoordBufferData = new Float32Array([
-                    0.0f,  0.0f,
-                    1.0f,  0.0f,
-                    0.0f,  1.0f,
-                    0.0f,  1.0f,
-                    1.0f,  0.0f,
-                    1.0f,  1.0f,
-                ]);
-                // Write the normalized texture coordinates to the texCoordBuffer
-                gl.BufferData(gl.ARRAY_BUFFER, texCoordBufferData, gl.STATIC_DRAW);
-            }
-
-            // input texture
-            videoSampler ??= CreateImageTexture();
-
-            // depth texture
-            depthSampler ??= CreateImageTexture();
-
-            // overlay texture
-            overlayTexture ??= CreateImageTexture();
-        }
-        public async Task<Blob?> ToBlob(string? type = null, float? quality = null)
-        {
-            if (string.IsNullOrEmpty(type))
-            {
-                type = "Canvas/png";
-            }
-            if (Canvas != null)
-            {
-                if (quality != null)
-                {
-                    var blob = await Canvas.ToBlobAsync(type, quality.Value);
-                    return blob;
-                }
-                else
-                {
-                    var blob = await Canvas.ToBlobAsync(type);
-                    return blob;
-                }
-            }
-            else if (OffscreenCanvas != null)
-            {
-                var blob = await OffscreenCanvas.ConvertToBlob(new ConvertToBlobOptions
-                {
-                    Type = type,
-                    Quality = quality,
-                });
-                return blob;
-            }
-            return null;
-        }
-        public async Task<string?> ToObjectUrl(string? type = null, float? quality = null)
-        {
-            using var blob = await ToBlob(type, quality);
-            var objectUrl = blob == null ? null : URL.CreateObjectURL(blob);
-            return objectUrl;
-        }
+        WebGLBuffer? vertexPositionBuffer = null;
+        WebGLTexture? videoSampler = null;
+        WebGLTexture? depthSampler = null;
+        WebGLTexture? overlayTexture = null;
         public int OutWidth
         {
             get => Canvas?.Width ?? OffscreenCanvas?.Width ?? 0;
@@ -156,31 +45,32 @@ namespace SpawnDev.BlazorJS.MultiView
                 }
             }
         }
-        //public void SetOutputSize(int width, int height)
-        //{
-        //    if (Canvas != null)
-        //    {
-        //        Canvas.Width = width;
-        //        Canvas.Height = height;
-        //    }
-        //    else if (OffscreenCanvas != null)
-        //    {
-        //        OffscreenCanvas.Width = width;
-        //        OffscreenCanvas.Height = height;
-        //    }
-        //}
-        WebGLTexture? videoSampler = null;
-        WebGLTexture? depthSampler = null;
-        WebGLTexture? overlayTexture = null;
-
         public virtual string OutFormat { get; } = "2d"; // default output format, can be overridden by derived classes
-        public int FrameWidth { get; private set; }
-        public int FrameHeight { get; private set; }
-        public int DepthWidth { get; private set; }
-        public int DepthHeight { get; private set; }
-        public int OverlayWidth { get; private set; }
-        public int OverlayHeight { get; private set; }
-        public string? Source { get; private set; }
+        public int FrameWidth { get; protected set; }
+        public int FrameHeight { get; protected set; }
+        public int DepthWidth { get; protected set; }
+        public int DepthHeight { get; protected set; }
+        public int OverlayWidth { get; protected set; }
+        public int OverlayHeight { get; protected set; }
+        public string? Source { get; protected set; }
+        protected MultiviewRenderer()
+        {
+            OffscreenCanvas = new OffscreenCanvas(1, 1);
+            gl = OffscreenCanvas.GetWebGLContext(new WebGLContextAttributes
+            {
+                PreserveDrawingBuffer = true,
+            });
+            // classes that implement this class will create he shader program
+        }
+        protected MultiviewRenderer(HTMLCanvasElement canvas)
+        {
+            this.Canvas = canvas;
+            gl = canvas.GetWebGLContext(new WebGLContextAttributes
+            {
+                PreserveDrawingBuffer = true,
+            });
+            // classes that implement this class will create the shader program
+        }
         public void SetInput(OffscreenCanvas canvas)
         {
             Source = "";
@@ -243,13 +133,45 @@ namespace SpawnDev.BlazorJS.MultiView
             gl.BindTexture(gl.TEXTURE_2D, overlayTexture);
             gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
         }
+        int vertexPositionAttrLoc = -1;
         public void Render()
         {
             bool views_index_invert = false;
             var outWidth = FrameWidth;
             var outHeight = FrameHeight;
-            Init(outWidth, outHeight);
-            //var OutAspectRatio = (float)outHeight / (float)outWidth;
+
+            OutWidth = outWidth;
+            OutHeight = outHeight;
+
+            gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1);
+
+            if (vertexPositionBuffer == null)
+            {
+                vertexPositionAttrLoc = gl.GetAttribLocation(program, "vertexPosition");
+                using var vertexPositionBufferData = new Float32Array([
+                    // First triangle:
+                     1.0f,  1.0f,
+                    -1.0f,  1.0f,
+                    -1.0f, -1.0f,
+                    // Second triangle:
+                    -1.0f, -1.0f,
+                     1.0f, -1.0f,
+                     1.0f,  1.0f
+                ]);
+                // Write the normalized texture coordinates to the texCoordBuffer
+                vertexPositionBuffer = gl.CreateBuffer();
+                gl.BindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
+                gl.BufferData(gl.ARRAY_BUFFER, vertexPositionBufferData, gl.STATIC_DRAW);
+            }
+
+            // input texture
+            videoSampler ??= CreateImageTexture();
+
+            // depth texture
+            depthSampler ??= CreateImageTexture();
+
+            // overlay texture
+            overlayTexture ??= CreateImageTexture();
 
             gl.UseProgram(program);
 
@@ -280,9 +202,6 @@ namespace SpawnDev.BlazorJS.MultiView
             //uniform bool views_index_invert_x; // false 0x is left, true 0x is right
             Uniform1i("views_index_invert_x", views_index_invert ? 1 : 0);
 
-            // screen size used in the vertex shader
-            Uniform2f("screenSize", outWidth, outHeight);
-
             // if 2d+z below 2 uniforms must be set
             var outPixelWidth = 1.0f / (float)outWidth;
             // handle extra data needed for 2dz and 2dzd
@@ -307,46 +226,34 @@ namespace SpawnDev.BlazorJS.MultiView
             gl.Clear(gl.COLOR_BUFFER_BIT);
 
             {
-                // Turn on the position attribute
-                gl.EnableVertexAttribArray(positionLocation);
-
-                // Bind the position buffer.
-                gl.BindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
-                // Tell the position attribute how to get data out of positionBuffer (ARRAY_BUFFER)
-                var size = 2;          // 2 components per iteration
-                var type = gl.FLOAT;   // the data is 32bit floats
-                var normalize = false; // don't normalize the data
-                var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-                var offset = 0;        // start at the beginning of the buffer
-                gl.VertexAttribPointer(positionLocation, size, type, normalize, stride, offset);
-            }
-
-            {
-                // Turn on the texCoord attribute
-                gl.EnableVertexAttribArray(texcoordLocation);
-
                 // bind the texCoord buffer.
-                gl.BindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
-
-                // Tell the texCoord attribute how to get data out of texCoordBuffer (ARRAY_BUFFER)
-                var size = 2;          // 2 components per iteration
-                var type = gl.FLOAT;   // the data is 32bit floats
-                var normalize = false; // don't normalize the data
-                var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-                var offset = 0;        // start at the beginning of the buffer
-                gl.VertexAttribPointer(texcoordLocation, size, type, normalize, stride, offset);
+                gl.BindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer!);
+                gl.EnableVertexAttribArray(vertexPositionAttrLoc);
+                gl.VertexAttribPointer(vertexPositionAttrLoc, 2, gl.FLOAT, false, 0, 0);
             }
 
             {
-                // Draw the rectangle (full screen quad)
-                var primitiveType = gl.TRIANGLES;
-                var offset = 0;
-                var count = 6;
-                gl.DrawArrays(primitiveType, offset, count);
+                // Draw the full screen quad
+                gl.DrawArrays(gl.TRIANGLES, 0, 6);
             }
+
+            //{
+            //    // Cleanup
+            //    gl.BindBuffer(gl.ARRAY_BUFFER, null);
+            //}
         }
         public WebGLTexture CreateImageTexture()
+        {
+            var texture = gl.CreateTexture();
+            gl.BindTexture(gl.TEXTURE_2D, texture);
+            // Set the parameters so we can render any size image.
+            gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            return texture;
+        }
+        public WebGLTexture CreateDepthTexture()
         {
             var texture = gl.CreateTexture();
             gl.BindTexture(gl.TEXTURE_2D, texture);
@@ -356,6 +263,50 @@ namespace SpawnDev.BlazorJS.MultiView
             gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
             gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
             return texture;
+        }
+        public void Dispose()
+        {
+
+        }
+        public virtual void ApplyEffect()
+        {
+
+        }
+        public async Task<Blob?> ToBlob(string? type = null, float? quality = null)
+        {
+            if (string.IsNullOrEmpty(type))
+            {
+                type = "image/png";
+            }
+            if (Canvas != null)
+            {
+                if (quality != null)
+                {
+                    var blob = await Canvas.ToBlobAsync(type, quality.Value);
+                    return blob;
+                }
+                else
+                {
+                    var blob = await Canvas.ToBlobAsync(type);
+                    return blob;
+                }
+            }
+            else if (OffscreenCanvas != null)
+            {
+                var blob = await OffscreenCanvas.ConvertToBlob(new ConvertToBlobOptions
+                {
+                    Type = type,
+                    Quality = quality,
+                });
+                return blob;
+            }
+            return null;
+        }
+        public async Task<string?> ToObjectUrl(string? type = null, float? quality = null)
+        {
+            using var blob = await ToBlob(type, quality);
+            var objectUrl = blob == null ? null : URL.CreateObjectURL(blob);
+            return objectUrl;
         }
         Dictionary<string, WebGLUniformLocation?> _uniforms = new Dictionary<string, WebGLUniformLocation?>();
         WebGLUniformLocation? GetUniformLocation(string name)
