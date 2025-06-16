@@ -39,7 +39,7 @@ namespace SpawnDev.BlazorJS.MultiView
                 {
                     Canvas.Height = value;
                 }
-                else if (OffscreenCanvas != null && OffscreenCanvas.Width != value)
+                else if (OffscreenCanvas != null && OffscreenCanvas.Height != value)
                 {
                     OffscreenCanvas.Height = value;
                 }
