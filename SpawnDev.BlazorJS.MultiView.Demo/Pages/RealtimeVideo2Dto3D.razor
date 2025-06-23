@@ -1,11 +1,12 @@
 ﻿@page "/RealTimeVideo2Dto3D"
+@using System.Diagnostics
 @using SpawnDev.BlazorJS
 @using SpawnDev.BlazorJS.JSObjects
-@using System.Diagnostics
 @using SpawnDev.BlazorJS.MultiView
 @using SpawnDev.BlazorJS.MultiView.Demo.Shared
-@using SpawnDev.BlazorJS.TransformersJS.DepthAnythingV2
+@using SpawnDev.BlazorJS.MultiView.Renderers
 @using SpawnDev.BlazorJS.TransformersJS
+@using SpawnDev.BlazorJS.TransformersJS.DepthAnythingV2
 @implements IDisposable
 
 <div class="container">
@@ -128,9 +129,10 @@
             supportsVideoFrameCallback = video.SupportsRequestVideoFrameCallback;
 
             // Anaglyph renderer initialization
-            Renderers.Add(new AnaglyphRenderer { ProfileIndex = 0 });
-            Renderers.Add(new AnaglyphRenderer { ProfileIndex = 1 });
-            // setup the sliders and their change events
+            Renderers.Add(new RenderAnaglyph { ProfileIndex = 0 });
+            Renderers.Add(new RenderAnaglyph { ProfileIndex = 1 });
+            Renderers.Add(new SideRenderSideBySide
+            Renderers.Add(new TwoDReRender2D            // setup the sliders and theRender2DZnts
             scaleEl = new HTMLInputElement(scaleRef);
             scaleEl.OnChange += Scale_OnChange;
             focus3DEl = new HTMLInputElement(focusRef);
@@ -262,6 +264,10 @@
         }
     }
     bool UpdateCallbackRunning = false;
+    OffscreenCanvas? rgbCanvas = null;
+    OffscreenCanvas? rgbCanvasScaled = null;
+    CanvasRenderingContext2D? rgbCtx = null;
+    CanvasRenderingContext2D? rgbCtxScaled = null;
     async Task UpdateCallback()
     {
         if (IsDisposed || video == null || UpdateCallbackRunning || outputCanvas == null || ctx == null || activeRenderer == null) return;
@@ -270,47 +276,56 @@
         {
             var rgbWidth = video.VideoWidth;
             var rgbHeight = video.VideoHeight;
-
+            SourceWidth = rgbWidth;
+            SourceHeight = rgbHeight;
             // Create an OffscreenCanvas to draw the full size VideoFrame
-            using var rgbCanvas = new OffscreenCanvas(rgbWidth, rgbHeight);
-            using var rgbCtx = rgbCanvas.Get2DContext();
-            rgbCtx.DrawImage(video, 0, 0, rgbWidth, rgbHeight);
-
+            if (rgbCanvas == null)
+            {
+                rgbCanvas = new OffscreenCanvas(rgbWidth, rgbHeight);
+                rgbCtx = rgbCanvas.Get2DContext(new CanvasRenderingContext2DSettings { WillReadFrequently = true });
+            }
+            else
+            {
+                rgbCanvas.Width = rgbWidth;
+                rgbCanvas.Height = rgbHeight;
+            }
+            rgbCtx!.DrawImage(video, 0, 0, rgbWidth, rgbHeight);
             // Create an OffscreenCanvas to draw the scaled VideoFrame
             var depthWidth = (int)(rgbWidth * scale);
             var depthHeight = (int)(rgbHeight * scale);
-
-            using var rgbCanvasScaled = new OffscreenCanvas(depthWidth, depthHeight);
-            using var rgbCtxScaled = rgbCanvasScaled.Get2DContext();
-            rgbCtxScaled.DrawImage(rgbCanvas, 0, 0, depthWidth, depthHeight);
-
+            DepthWidth = depthWidth;
+            DepthHeight = depthHeight;
+            if (rgbCanvasScaled == null)
+            {
+                rgbCanvasScaled = new OffscreenCanvas(depthWidth, depthHeight);
+                rgbCtxScaled = rgbCanvasScaled.Get2DContext(new CanvasRenderingContext2DSettings { WillReadFrequently = true });
+            }
+            else
+            {
+                rgbCanvasScaled.Width = depthWidth;
+                rgbCanvasScaled.Height = depthHeight;
+            }
+            rgbCtxScaled!.DrawImage(rgbCanvas, 0, 0, depthWidth, depthHeight);
             // Convert the OffscreenCanvas to a RawImage for processing
-            using var rgbImageScaled = JS.Call<RawImage>("Transformers.RawImage.fromCanvas", rgbCanvasScaled);// RawImage.FromCanvas(rgbCanvasScaled);
-
-            // uncomment after next Transformer.js update
-            // using var rgbImageScaled = RawImage.FromCanvas(rgbCanvasScaled);
-
+            using var rgbImageScaled = RawImage.FromCanvas(rgbCanvasScaled);
             // Run the depth estimation pipeline on the RGB image
             using var depthResult = await pipeline!.Call(rgbImageScaled);
             using var depth = depthResult.Depth;
             using var depthmapData = depth.Data;
-
-            // // Merge the 2D image and the depth result into a single canvas
-            // using var rgbZCanvas = Merge2DWithDepthToCanvas2DZ(rgbCanvas, depthResult);
-
+            //
             activeRenderer.Level3D = Level3D;
             activeRenderer.Focus3D = Focus3D;
             activeRenderer.SetInput(rgbCanvas);
             activeRenderer.SetDepth(depth.Width, depth.Height, depthmapData);
             activeRenderer.Render();
-
+            //
             if (outputCanvas.ClientWidth != rgbWidth || outputCanvas.ClientHeight != rgbHeight)
             {
                 // Resize the output canvas to match the video dimensions
                 outputCanvas.Width = rgbWidth;
                 outputCanvas.Height = rgbHeight;
             }
-
+            //
             ctx.DrawImage(activeRenderer.OffscreenCanvas!);
         }
         catch (Exception ex)

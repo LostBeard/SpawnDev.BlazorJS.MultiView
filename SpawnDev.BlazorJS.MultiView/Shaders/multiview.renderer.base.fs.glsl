@@ -22,6 +22,10 @@ uniform int rI0[1];
 
 const vec4 colorBlack = vec4(0.0, 0.0, 0.0, 1.0);
 
+float getDepth(vec2 uv){
+	return texture2D(depthSampler, uv).a;
+}
+
 vec4 viewColor2DZ(float view_index, vec2 view_uv) {
 	vec4 o = vec4(0.0, 0.0, 0.0, 0.5);
 	if (views_index_invert_x) {
@@ -60,7 +64,7 @@ vec4 viewColor2DZ(float view_index, vec2 view_uv) {
 		{
 			if (n >= rI0[0]) break;
 			uvNext.x = start_x + (pixel_width_signed * float(n));
-			pDepth = texture2D(depthSampler, uvNext.xy).a;
+			pDepth = getDepth(uvNext.xy);
 			//pDepth = clamp(pDepth, 0.0, 1.0);
 			dest_x = uvNext.x + (pDepth * sep_max_x_signed) - offset_f_signed;
 			diff_x = abs(uv.x - dest_x);
@@ -102,7 +106,19 @@ vec4 pseudoSBS(vec2 view_uv) {
 	if (view_uv.x > 0.5) {
 		return viewColor2DZ(1.0, vec2((view_uv.x - 0.5) * 2.0, view_uv.y));
 	}
-	else {
+	else 
+	{
+		return viewColor2DZ(0.0, vec2(view_uv.x * 2.0, view_uv.y));
+	}
+}
+
+vec4 pseudo2DZ(vec2 view_uv) {
+	if (view_uv.x > 0.5) {
+		float z = getDepth(vec2((view_uv.x - 0.5) * 2.0, view_uv.y));
+		return vec4(z, z, z, 1.0);
+	}
+	else 
+	{
 		return viewColor2DZ(0.0, vec2(view_uv.x * 2.0, view_uv.y));
 	}
 }
@@ -110,3 +126,5 @@ vec4 pseudoSBS(vec2 view_uv) {
 vec4 uiColor(vec2 uv) {
 	return texture2D(textureSampler, uv);
 }
+
+

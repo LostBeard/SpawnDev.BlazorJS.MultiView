@@ -22,6 +22,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <EmbeddedResource Include="Shaders\multiview.renderer.2dz.fs.glsl" />
+	  <EmbeddedResource Include="Shaders\multiview.renderer.2d.fs.glsl" />
+	  <EmbeddedResource Include="Shaders\multiview.renderer.side-by-side.fs.glsl" />
 	  <EmbeddedResource Include="Shaders\multiview.renderer.anaglyph.fs.glsl" />
 	  <EmbeddedResource Include="Shaders\multiview.renderer.base.fs.glsl" />
 	  <EmbeddedResource Include="Shaders\multiview.renderer.vs.glsl" />

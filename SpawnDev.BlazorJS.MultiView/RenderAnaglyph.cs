@@ -3,13 +3,22 @@ using SpawnDev.BlazorJS.MultiView.Utils;
 
 namespace SpawnDev.BlazorJS.MultiView
 {
-    public class AnaglyphProfile
+    /// <summary>
+    /// Anaglyph renderer
+    /// </summary>
+    public class RenderAnaglyph : MultiviewRenderer
     {
-        public string Name { get; set; } = "";
-        public float[] Data { get; set; } = null;
-    }
-    public class AnaglyphRenderer : MultiviewRenderer
-    {
+        /// <summary>
+        /// Represents a profile for an anaglyph effect, including its name and associated data.
+        /// </summary>
+        /// <remarks>An anaglyph profile typically contains a name identifying the profile and a set of
+        /// data values that define the parameters for the anaglyph effect. The <see cref="Data"/> property holds the
+        /// numerical values used to configure the effect.</remarks>
+        public class AnaglyphProfile
+        {
+            public string Name { get; set; }
+            public float[] Data { get; set; }
+        }
         int _ProfileIndex = 0;
         public int ProfileIndex
         {
@@ -109,11 +118,11 @@ namespace SpawnDev.BlazorJS.MultiView
                 }
             },
         };
-        public AnaglyphRenderer() : base()
+        public RenderAnaglyph() : base()
         {
             Init();
         }
-        public AnaglyphRenderer(HTMLCanvasElement canvas) : base(canvas)
+        public RenderAnaglyph(HTMLCanvasElement canvas) : base(canvas)
         {
             Init();
         }

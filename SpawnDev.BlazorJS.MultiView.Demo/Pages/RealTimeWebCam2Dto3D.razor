@@ -1,11 +1,12 @@
 ﻿@page "/RealTime2Dto3D"
+@using System.Diagnostics
 @using SpawnDev.BlazorJS
 @using SpawnDev.BlazorJS.JSObjects
-@using System.Diagnostics
 @using SpawnDev.BlazorJS.MultiView
 @using SpawnDev.BlazorJS.MultiView.Demo.Shared
-@using SpawnDev.BlazorJS.TransformersJS.DepthAnythingV2
+@using SpawnDev.BlazorJS.MultiView.Renderers
 @using SpawnDev.BlazorJS.TransformersJS
+@using SpawnDev.BlazorJS.TransformersJS.DepthAnythingV2
 @implements IDisposable
 
 <div class="container">
@@ -107,11 +108,11 @@
             window = JS.Get<Window>("window");
             video = new HTMLVideoElement(videoRef);
             // Anaglyph renderer initialization
-            Renderers.Add(new AnaglyphRenderer { ProfileIndex = 0 });
-            Renderers.Add(new AnaglyphRenderer { ProfileIndex = 1 });
-            // setup the sliders and their change events
-            scaleEl = new HTMLInputElement(scaleRef);
-            scaleEl.OnChange += Scale_OnChange;
+            Renderers.Add(new RenderAnaglyph { ProfileIndex = 0 });
+            Renderers.Add(new RenderAnaglyph { ProfileIndex = 1 });
+            // setup the sliders aRenderSideBySideents
+            scaleEl = new HTMLInRender2DcaleRef);
+            scaleEl.OnChange Render2DZange;
             focus3DEl = new HTMLInputElement(focusRef);
             focus3DEl.OnChange += Focus_OnChange;
             level3DEl = new HTMLInputElement(level3DRef);

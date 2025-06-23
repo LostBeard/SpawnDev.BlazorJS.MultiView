@@ -2,19 +2,29 @@
 
 namespace SpawnDev.BlazorJS.MultiView
 {
+    /// <summary>
+    /// WebGL renderer base for multiview rendering.
+    /// </summary>
     public abstract class MultiviewRenderer : IDisposable
     {
         public OffscreenCanvas? OffscreenCanvas { get; protected set; }
         public HTMLCanvasElement? Canvas { get; protected set; }
         public WebGLRenderingContext gl { get; protected set; }
         public WebGLProgram program { get; protected set; }
+        /// <summary>
+        /// Gets or sets the 3D level adjustment factor.
+        /// </summary>
         public float Level3D { get; set; } = 1f;
         public float SepMax { get; set; } = 0.020f;
+        /// <summary>
+        /// The image depth relative to the screen
+        /// </summary>
         public float Focus3D { get; set; } = 0.5f;
         WebGLBuffer? vertexPositionBuffer = null;
         WebGLTexture? videoSampler = null;
         WebGLTexture? depthSampler = null;
         WebGLTexture? overlayTexture = null;
+        public virtual bool RequiresDepth => true; // default is true, can be overridden by derived classes
         public int OutWidth
         {
             get => Canvas?.Width ?? OffscreenCanvas?.Width ?? 0;
@@ -64,7 +74,7 @@ namespace SpawnDev.BlazorJS.MultiView
         }
         protected MultiviewRenderer(HTMLCanvasElement canvas)
         {
-            this.Canvas = canvas;
+            Canvas = canvas;
             gl = canvas.GetWebGLContext(new WebGLContextAttributes
             {
                 PreserveDrawingBuffer = true,
@@ -134,9 +144,9 @@ namespace SpawnDev.BlazorJS.MultiView
             gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
         }
         int vertexPositionAttrLoc = -1;
+        protected bool views_index_invert = false;
         public void Render()
         {
-            bool views_index_invert = false;
             var outWidth = FrameWidth;
             var outHeight = FrameHeight;
 
@@ -203,10 +213,10 @@ namespace SpawnDev.BlazorJS.MultiView
             Uniform1i("views_index_invert_x", views_index_invert ? 1 : 0);
 
             // if 2d+z below 2 uniforms must be set
-            var outPixelWidth = 1.0f / (float)outWidth;
+            var outPixelWidth = 1.0f / outWidth;
             // handle extra data needed for 2dz and 2dzd
             var sep_max_x = SepMax * Level3D; // (RenderManager.settings["3d_level_global"].value);
-            var sep_max_modifier = 900f / (float)outWidth;
+            var sep_max_modifier = 900f / outWidth;
             sep_max_x = sep_max_x * sep_max_modifier;
             //sep_max_x = sep_max_x - (sep_max_x % rC0[1]);
             int loop_cnt = (int)Math.Ceiling(sep_max_x / outPixelWidth) + 2;
