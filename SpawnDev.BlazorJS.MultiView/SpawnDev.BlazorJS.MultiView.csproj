@@ -18,7 +18,7 @@
 		<PackageIcon>icon-128.png</PackageIcon>
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.BlazorJS.MultiView.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<PackageTags>Blazor;BlazorWebAssembly;Javascript;ONNX;DepthEstimation;Transformers.js;3D;Anaglyph</PackageTags>
+		<PackageTags>Blazor;BlazorWebAssembly;Javascript;3D;Anaglyph;Multiview;2DZ</PackageTags>
 	</PropertyGroup>
 
 	<ItemGroup>
