@@ -10,7 +10,7 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.16" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.16" PrivateAssets="all" />
-		<PackageReference Include="SpawnDev.BlazorJS.TransformersJS.DepthAnythingV2" Version="1.0.0" />
+		<PackageReference Include="SpawnDev.BlazorJS.TransformersJS.DepthAnythingV2" Version="1.4.1" />
 		
 	</ItemGroup>
 
