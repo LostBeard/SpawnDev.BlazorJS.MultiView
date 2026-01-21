@@ -1,6 +1,6 @@
 // 2D+Z multi-view by Todd Tanner (LostBeard)
 // Improvements welcomed
-// This is a prtial fragment shader that can be included to allow easy access to psuedo-views 
+// This is a partial fragment shader that can be included to allow easy access to psuedo-views 
 // from various angles that will be generated using the depth and rgb data
 
 precision highp float;
