@@ -15,6 +15,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\SpawnDev.BlazorJS.MultiView.Dimenco\SpawnDev.BlazorJS.MultiView.Dimenco.csproj" />
 	  <ProjectReference Include="..\SpawnDev.BlazorJS.MultiView\SpawnDev.BlazorJS.MultiView.csproj" />
 	</ItemGroup>
 

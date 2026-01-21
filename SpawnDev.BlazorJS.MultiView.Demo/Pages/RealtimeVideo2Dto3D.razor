@@ -4,6 +4,7 @@
 @using SpawnDev.BlazorJS.JSObjects
 @using SpawnDev.BlazorJS.MultiView
 @using SpawnDev.BlazorJS.MultiView.Demo.Shared
+@using SpawnDev.BlazorJS.MultiView.Dimenco
 @using SpawnDev.BlazorJS.TransformersJS
 @using SpawnDev.BlazorJS.TransformersJS.DepthAnythingV2
 @implements IDisposable
@@ -132,7 +133,8 @@
             Renderers.Add(new RenderAnaglyph { ProfileIndex = 1 });
             Renderers.Add(new RenderSideBySide());
             Renderers.Add(new Render2DZ());
-            Renderers.Add(new Render2D());      
+            Renderers.Add(new RenderDimenco2DZ());
+            Renderers.Add(new Render2D());
             scaleEl = new HTMLInputElement(scaleRef);
             scaleEl.OnChange += Scale_OnChange;
             focus3DEl = new HTMLInputElement(focusRef);

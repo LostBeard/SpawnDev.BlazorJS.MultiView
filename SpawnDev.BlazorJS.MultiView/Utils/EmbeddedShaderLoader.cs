@@ -8,6 +8,10 @@ namespace SpawnDev.BlazorJS.MultiView.Utils
     {
         static Regex IncludeRegex = new Regex(@"#include<(.+?)>", RegexOptions.Multiline | RegexOptions.Compiled);
 
+        public static string? GetBaseShaderString(string resourceName, bool useIncludes = true)
+        {
+            return GetShaderString(resourceName, useIncludes, Assembly.GetExecutingAssembly());
+        }
         public static string? GetShaderString(string resourceName, bool useIncludes = true, Assembly? assembly = null)
         {
             try
@@ -33,6 +37,14 @@ namespace SpawnDev.BlazorJS.MultiView.Utils
                         if (includeShader != null)
                         {
                             ret = ret.Replace(match.Value, includeShader);
+                        }
+                        else
+                        {
+                            includeShader = GetBaseShaderString(includeName, true);
+                            if (includeShader != null)
+                            {
+                                ret = ret.Replace(match.Value, includeShader);
+                            }
                         }
                     }
                 }

@@ -70,7 +70,7 @@ namespace SpawnDev.BlazorJS.MultiView
             {
                 PreserveDrawingBuffer = true,
             });
-            // classes that implement this class will create he shader program
+            // classes that implement this class will create the shader program
         }
         protected MultiviewRenderer(HTMLCanvasElement canvas)
         {
