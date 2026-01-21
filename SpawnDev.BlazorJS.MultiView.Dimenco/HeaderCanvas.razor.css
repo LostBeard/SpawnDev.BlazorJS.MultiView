@@ -1,0 +1,19 @@
+﻿.dimenco-header-canvas-block {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 65536;
+    height: 1px;
+    margin: 0;
+    border: 0;
+    padding: 0;
+}
+.dimenco-header-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 1px;
+    margin: 0;
+    border: 0;
+    padding: 0;
+}
