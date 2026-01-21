@@ -1,0 +1,46 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Version>2.0.1</Version>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<EmbedAllSources>true</EmbedAllSources>
+		<DebugType>Embedded</DebugType>
+		<Title>SpawnDev.BlazorJS.MultiView.Dimenco</Title>
+		<Authors>LostBeard</Authors>
+		<Description>Tools for rendering 2D+Z on Dimenco 3D autosteroscopic displays in Blazor WebAsembly.</Description>
+		<PackageProjectUrl>https://github.com/LostBeard/SpawnDev.BlazorJS.MultiView</PackageProjectUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+		<PackageIcon>icon-128.png</PackageIcon>
+		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.BlazorJS.MultiView.git</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageTags>Blazor;BlazorWebAssembly;Javascript;3D;Anaglyph;Multiview;2DZ;</PackageTags>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="Shaders\multiview.renderer.2dz.fs.glsl" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="Assets\icon-128.png" Pack="true" PackagePath="\" />
+		<None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
+		<None Include="..\README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="SpawnDev.BlazorJS" Version="2.46.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\SpawnDev.BlazorJS.MultiView\SpawnDev.BlazorJS.MultiView.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<SupportedPlatform Include="browser" />
+	</ItemGroup>
+
+</Project>
